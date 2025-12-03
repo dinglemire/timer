@@ -1,6 +1,7 @@
 /* --- STATE MANAGEMENT --- */
 let appData = {
     theme: 'theme-dark',
+    layout: 'list', // 'list' or 'grid'
     activeTabId: 1,
     tabs: []
 };
@@ -20,7 +21,6 @@ function playSound(type) {
     const now = audioCtx.currentTime;
 
     if (type === 'beep') {
-        // Longer Beep (0.3s)
         osc.type = 'sine';
         osc.frequency.setValueAtTime(800, now);
         gainNode.gain.setValueAtTime(0.1, now);
@@ -28,16 +28,11 @@ function playSound(type) {
         osc.stop(now + 0.3);
     } 
     else if (type === 'beep2') {
-        // Double Digital Beep
         osc.type = 'square';
         osc.frequency.setValueAtTime(1200, now);
         gainNode.gain.setValueAtTime(0.05, now);
-        
-        // First blip
         osc.start(now);
         osc.stop(now + 0.1);
-
-        // Second blip
         const osc2 = audioCtx.createOscillator();
         const gain2 = audioCtx.createGain();
         osc2.type = 'square';
@@ -49,7 +44,6 @@ function playSound(type) {
         osc2.stop(now + 0.25);
     }
     else if (type === 'alarm') {
-        // Classic Alarm
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(600, now);
         osc.frequency.exponentialRampToValueAtTime(100, now + 0.6);
@@ -64,37 +58,42 @@ function init() {
     const saved = localStorage.getItem('proTimerData');
     if (saved) {
         appData = JSON.parse(saved);
-        // Ensure data integrity if upgrading from old versions
         if(!appData.tabs) appData.tabs = [];
+        // Migration support for older saves without layout
+        if(!appData.layout) appData.layout = 'list';
     } else {
-        // Default Setup: Tab 1 with 1 timer
-        createTab('Timer 1', true);
+        // FIX: Default first tab is now "Tab 1"
+        createTab('Tab 1', true);
     }
     
     applyTheme(appData.theme);
+    applyLayout(appData.layout);
     renderTabs();
     renderTimers();
 }
 
-// --- GLOBAL LOOP (100ms) ---
-// We loop through ALL tabs and ALL timers to ensure background tabs still count down
+// --- GLOBAL LOOP ---
 setInterval(() => {
     let needsSave = false;
     let needsRender = false;
+    let lowestTime = Infinity;
+    let activeTimersCount = 0;
 
     appData.tabs.forEach(tab => {
         tab.timers.forEach(timer => {
             if (timer.isRunning) {
+                activeTimersCount++;
+                if (timer.remaining < lowestTime) lowestTime = timer.remaining;
+
                 if (timer.remaining > 0) {
                     timer.remaining--;
                 } else {
                     timer.isRunning = false;
                     timer.remaining = 0;
                     if (timer.sound !== 'none') playSound(timer.sound);
-                    needsRender = true; // Timer finished, update UI
+                    needsRender = true;
                 }
                 
-                // Only update DOM if this timer is currently visible in active tab
                 if (tab.id === appData.activeTabId) {
                     updateTimerDOM(timer);
                 }
@@ -103,21 +102,29 @@ setInterval(() => {
         });
     });
 
+    // Browser Title Update
+    if (activeTimersCount > 0 && lowestTime !== Infinity) {
+        document.title = `(${formatTime(lowestTime)}) ProTimer`;
+    } else {
+        document.title = "ProTimer";
+    }
+
     if (needsSave) saveData();
     if (needsRender) renderTimers();
 }, 1000);
 
 // --- TAB LOGIC ---
-function createTab(name = "New Tab", isFirst = false) {
+function createTab(name, isFirst = false) {
     const newTab = {
         id: Date.now(),
         name: name,
         timers: []
     };
     
-    // Add default timer (1 min)
+    // Create default timer for the new tab
+    // We pass '1' because it's the first timer in this tab
     const timerId = Date.now() + 1;
-    newTab.timers.push(createTimerObject(timerId, 60)); // 60 seconds default
+    newTab.timers.push(createTimerObject(timerId, 60, 1)); 
 
     appData.tabs.push(newTab);
     if (!isFirst) switchTab(newTab.id);
@@ -152,15 +159,16 @@ function renameCurrentTab(newName) {
     if(tab) {
         tab.name = newName;
         saveData();
-        renderTabs(); // Refresh button names
+        renderTabs();
     }
 }
 
 // --- TIMER LOGIC ---
-function createTimerObject(id, duration) {
+function createTimerObject(id, duration, countNumber) {
     return {
         id: id,
-        name: `Timer`,
+        // FIX: Naming logic "Timer 1", "Timer 2" etc.
+        name: `Timer ${countNumber}`,
         totalDuration: duration,
         remaining: duration,
         isRunning: false,
@@ -173,10 +181,12 @@ function addTimerToCurrentTab() {
     const tab = appData.tabs.find(t => t.id === appData.activeTabId);
     if (!tab) return;
     
+    // FIX: Calculate next timer number based on existing length
+    const nextNum = tab.timers.length + 1;
+    
     // Default 1 Minute (60 seconds)
-    tab.timers.push(createTimerObject(Date.now(), 60)); 
+    tab.timers.push(createTimerObject(Date.now(), 60, nextNum)); 
     saveData();
-    renderTabs(); // In case we want to show timer counts in tabs later
     renderTimers();
 }
 
@@ -190,7 +200,6 @@ function deleteTimer(timerId) {
 function toggleTimer(timerId) {
     const tab = appData.tabs.find(t => t.id === appData.activeTabId);
     const timer = tab.timers.find(t => t.id === timerId);
-    
     if (timer.remaining === 0) timer.remaining = timer.totalDuration;
     timer.isRunning = !timer.isRunning;
     renderTimers();
@@ -226,6 +235,17 @@ function updateTimerProp(timerId, prop, value) {
     saveData();
 }
 
+function adjustTime(timerId, seconds) {
+    const tab = appData.tabs.find(t => t.id === appData.activeTabId);
+    const timer = tab.timers.find(t => t.id === timerId);
+    if (timer.remaining + seconds < 0) return;
+    timer.totalDuration += seconds;
+    timer.remaining += seconds;
+    if (timer.totalDuration < 0) timer.totalDuration = 0;
+    saveData();
+    renderTimers();
+}
+
 // --- DOM RENDERERS ---
 function renderTabs() {
     const list = document.getElementById('tabs-list');
@@ -239,7 +259,6 @@ function renderTabs() {
         list.appendChild(btn);
     });
 
-    // Update current tab name input
     const currentTab = appData.tabs.find(t => t.id === appData.activeTabId);
     if(currentTab) document.getElementById('current-tab-name').value = currentTab.name;
 }
@@ -265,9 +284,9 @@ function renderTimers() {
                 <input type="text" class="timer-name" value="${timer.name}" onchange="updateTimerProp(${timer.id}, 'name', this.value)">
                 <div>
                     <select onchange="updateTimerProp(${timer.id}, 'sound', this.value)">
-                        <option value="none" ${timer.sound === 'none' ? 'selected' : ''}>No Sound</option>
-                        <option value="beep" ${timer.sound === 'beep' ? 'selected' : ''}>Beep (Long)</option>
-                        <option value="beep2" ${timer.sound === 'beep2' ? 'selected' : ''}>Beep 2 (Double)</option>
+                        <option value="none" ${timer.sound === 'none' ? 'selected' : ''}>Silent</option>
+                        <option value="beep" ${timer.sound === 'beep' ? 'selected' : ''}>Beep</option>
+                        <option value="beep2" ${timer.sound === 'beep2' ? 'selected' : ''}>Beep 2</option>
                         <option value="alarm" ${timer.sound === 'alarm' ? 'selected' : ''}>Alarm</option>
                     </select>
                     <button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button>
@@ -275,6 +294,12 @@ function renderTimers() {
             </div>
 
             <div class="timer-display">${formatTime(timer.remaining)}</div>
+
+            <div class="quick-controls" ${timer.isRunning ? 'style="visibility:hidden"' : ''}>
+                <button class="btn-tiny" onclick="adjustTime(${timer.id}, -60)">-1m</button>
+                <button class="btn-tiny" onclick="adjustTime(${timer.id}, 60)">+1m</button>
+                <button class="btn-tiny" onclick="adjustTime(${timer.id}, 300)">+5m</button>
+            </div>
 
             <div class="edit-inputs">
                 <input type="number" id="h-${timer.id}" value="${h}" min="0"> h
@@ -297,14 +322,12 @@ function renderTimers() {
                 <button class="btn btn-reset" onclick="resetTimer(${timer.id})">
                     <i class="fa-solid fa-rotate-right"></i> Reset
                 </button>
-                <button class="btn btn-icon" style="margin-left: auto;" onclick="toggleEdit(${timer.id})">
-                    <i class="fa-solid fa-pen"></i> Edit
+                <button class="btn btn-icon" onclick="toggleEdit(${timer.id})">
+                    <i class="fa-solid fa-pen"></i>
                 </button>
             </div>
         `;
         container.appendChild(div);
-        
-        // Initial visual update to set colors correctly
         updateTimerDOM(timer);
     });
 }
@@ -313,23 +336,20 @@ function updateTimerDOM(timer) {
     const card = document.getElementById(`card-${timer.id}`);
     if (!card) return;
 
-    // Display
     const display = card.querySelector('.timer-display');
     if(display) display.textContent = formatTime(timer.remaining);
 
-    // Progress
     const progress = card.querySelector('.progress-bar');
-    const percent = timer.totalDuration > 0 ? (timer.remaining / timer.totalDuration) * 100 : 0;
     if(progress) {
+        const percent = timer.totalDuration > 0 ? (timer.remaining / timer.totalDuration) * 100 : 0;
         progress.style.width = `${percent}%`;
-        // Color logic
         const rootStyles = getComputedStyle(document.body);
         if(percent < 10) progress.style.backgroundColor = rootStyles.getPropertyValue('--accent-paused');
         else progress.style.backgroundColor = rootStyles.getPropertyValue('--accent-primary');
     }
 }
 
-// --- UTILS ---
+// --- HELPERS ---
 function formatTime(seconds) {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -348,12 +368,30 @@ function applyTheme(themeName) {
     saveData();
 }
 
+// FIX: Layout switching logic
+function applyLayout(mode) {
+    appData.layout = mode;
+    const container = document.getElementById('timers-list');
+    if (mode === 'grid') {
+        container.classList.add('grid-view');
+    } else {
+        container.classList.remove('grid-view');
+    }
+    saveData();
+}
+
+function toggleLayout() {
+    if (appData.layout === 'list') applyLayout('grid');
+    else applyLayout('list');
+}
+
 // --- EVENT LISTENERS ---
 document.getElementById('add-timer-btn').addEventListener('click', addTimerToCurrentTab);
 document.getElementById('add-tab-btn').addEventListener('click', () => createTab(`Tab ${appData.tabs.length + 1}`));
 document.getElementById('delete-tab-btn').addEventListener('click', deleteCurrentTab);
 document.getElementById('current-tab-name').addEventListener('input', (e) => renameCurrentTab(e.target.value));
 document.getElementById('theme-select').addEventListener('change', (e) => applyTheme(e.target.value));
+document.getElementById('layout-toggle-btn').addEventListener('click', toggleLayout);
 
 document.getElementById('clear-data-btn').addEventListener('click', () => {
     if(confirm('Reset ALL tabs and settings?')) {
