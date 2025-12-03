@@ -52,10 +52,7 @@ body {
     transition: background 0.3s, color 0.3s;
 }
 
-/* 
-   CHANGED: max-width is now 95% of the screen. 
-   This allows 3 or 4 timers to fit if your monitor is wide enough.
-*/
+/* Full width container to fit more cards */
 .app-container { 
     max-width: 95%; 
     margin: 0 auto; 
@@ -127,15 +124,11 @@ body {
     gap: 15px;
 }
 
-/* 
-   CHANGED: Grid View is now "Responsive Auto-Fit".
-   minmax(320px, 1fr) means: "Cards must be at least 320px wide, 
-   but if there is more space, add another column."
-   This will allow 3 or 4 columns on wide screens automatically.
-*/
+/* Grid View: Responsive Auto-Fit */
 .timers-container.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    /* Cards will try to be at least 340px wide */
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     align-items: start;
     gap: 20px;
 }
@@ -148,6 +141,8 @@ body {
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     border-left: 5px solid var(--accent-primary);
     transition: transform 0.2s;
+    /* Prevent overflow if things get tight */
+    overflow: hidden; 
 }
 
 .timer-card.running { border-left-color: var(--accent-running); }
@@ -161,20 +156,23 @@ body {
 }
 .timer-name:focus { outline: none; border-bottom: 1px solid var(--accent-running); }
 
-/* --- RESPONSIVE BIG DISPLAY --- */
+/* --- FIXED TIMER DISPLAY SIZE --- */
+/* Reduced the size so it fits safely. 
+   Clamp logic: Minimum 2.5rem, Ideal 10% of Viewport, Maximum 4.5rem */
 .timer-display { 
-    font-size: clamp(3.5rem, 12vw, 5.5rem); 
+    font-size: clamp(2.5rem, 10vw, 4.5rem); 
     font-family: 'Courier New', monospace; 
     font-weight: 700;
     margin: 5px 0; 
     text-align: center; 
-    line-height: 1.1;
-    letter-spacing: -2px;
+    line-height: 1.2;
+    letter-spacing: -1px; /* Slightly tighter spacing */
+    white-space: nowrap;  /* Prevents wrapping to next line */
 }
 
-/* Slightly smaller font specifically when in Grid View to help fit more columns */
+/* In Grid View, make it slightly smaller to be safe */
 .timers-container.grid-view .timer-display {
-    font-size: clamp(3rem, 10vw, 5rem);
+    font-size: clamp(2.2rem, 8vw, 3.8rem);
 }
 
 /* Edit Inputs */
@@ -203,9 +201,10 @@ select { background: var(--input-bg); color: var(--text-primary); border: 1px so
 footer { margin-top: 30px; text-align: center; padding-bottom: 20px;}
 .text-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; text-decoration: underline; }
 
-/* --- MOBILE FIXES --- */
+/* --- MOBILE & ZOOM FIXES --- */
 @media (max-width: 800px) {
     body { padding: 10px; }
+    /* Force 1 column on very narrow screens */
     .timers-container.grid-view { grid-template-columns: 1fr; }
     .timer-card { padding: 15px; margin-bottom: 5px; }
     h2 { font-size: 1.2rem; margin: 0; }
