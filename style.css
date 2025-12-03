@@ -52,10 +52,14 @@ body {
     transition: background 0.3s, color 0.3s;
 }
 
-.app-container { max-width: 900px; margin: 0 auto; }
+.app-container { 
+    max-width: 900px; 
+    margin: 0 auto; 
+    width: 100%;
+}
 
 /* Top Bar */
-.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
 .controls-group { display: flex; gap: 15px; align-items: center; }
 
 .btn-icon-header {
@@ -104,18 +108,19 @@ body {
     display: flex; justify-content: space-between; align-items: center;
     background: var(--card-bg); padding: 15px; margin-bottom: 20px;
     border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    flex-wrap: wrap; gap: 10px;
 }
 .tab-name-input {
     background: transparent; border: none; border-bottom: 1px solid var(--border-color);
-    color: var(--text-primary); font-size: 1.2rem; width: 200px;
+    color: var(--text-primary); font-size: 1.2rem; width: 150px;
 }
-.btn-text-danger { background: none; border: none; color: var(--accent-paused); cursor: pointer; font-size: 0.9rem; }
+.btn-text-danger { background: none; border: none; color: var(--accent-paused); cursor: pointer; font-size: 0.9rem; margin-left: 10px;}
 
 /* --- TIMERS CONTAINER (GRID vs LIST) --- */
 .timers-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px;
 }
 
 /* Grid View Modifier (2 Columns) */
@@ -125,16 +130,10 @@ body {
     align-items: start;
 }
 
-@media (max-width: 700px) {
-    .timers-container.grid-view {
-        grid-template-columns: 1fr;
-    }
-}
-
 /* Timer Card */
 .timer-card {
     background-color: var(--card-bg);
-    padding: 25px; /* Increased padding */
+    padding: 20px;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     border-left: 5px solid var(--accent-primary);
@@ -145,51 +144,72 @@ body {
 .timer-card.paused { border-left-color: var(--accent-paused); }
 .timer-card.finished { border-left-color: #fdcb6e; }
 
-.timer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.timer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
 .timer-name {
-    font-size: 1.2rem; background: transparent; border: none;
-    color: var(--text-primary); border-bottom: 1px solid transparent; width: 150px;
+    font-size: 1.1rem; background: transparent; border: none;
+    color: var(--text-primary); border-bottom: 1px solid transparent; width: 140px;
 }
 .timer-name:focus { outline: none; border-bottom: 1px solid var(--accent-running); }
 
-/* BIGGER TIMER DISPLAY */
+/* --- RESPONSIVE BIG DISPLAY --- */
+/* 'clamp' makes it responsive: Min 3.5rem, Preferred 15% of width, Max 6rem */
 .timer-display { 
-    font-size: 6rem; /* VERY BIG */
-    font-family: 'Courier New', monospace; /* Monospace keeps it stable */
+    font-size: clamp(3.5rem, 15vw, 6rem); 
+    font-family: 'Courier New', monospace; 
     font-weight: 700;
-    margin: 15px 0; 
+    margin: 5px 0; 
     text-align: center; 
-    line-height: 1;
+    line-height: 1.1;
     letter-spacing: -2px;
 }
 
-/* Adjust size slightly for Grid View so it fits */
-.timers-container.grid-view .timer-display {
-    font-size: 4.5rem; 
-}
-
 /* Edit Inputs */
-.edit-inputs { display: none; justify-content: center; gap: 5px; margin: 20px 0; }
-.edit-inputs input { width: 60px; padding: 10px; font-size: 1.2rem; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-primary); text-align: center; border-radius: 4px; }
+.edit-inputs { display: none; justify-content: center; gap: 5px; margin: 15px 0; }
+.edit-inputs input { width: 50px; padding: 8px; font-size: 1.1rem; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-primary); text-align: center; border-radius: 4px; }
 .timer-card.editing .timer-display { display: none; }
 .timer-card.editing .edit-inputs { display: flex; }
 
-.progress-container { width: 100%; height: 12px; background: var(--border-color); border-radius: 6px; margin-top: 20px; overflow: hidden; }
+.progress-container { width: 100%; height: 10px; background: var(--border-color); border-radius: 6px; margin-top: 15px; overflow: hidden; }
 .progress-bar { height: 100%; width: 0%; background-color: var(--accent-primary); transition: width 0.2s linear; }
 
 /* Controls & Buttons */
-.timer-controls { display: flex; gap: 10px; margin-top: 20px; justify-content: center; }
-.btn { padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; display: flex; align-items: center; gap: 8px; font-size: 1rem; }
+.timer-controls { display: flex; gap: 8px; margin-top: 15px; justify-content: center; flex-wrap: wrap; }
+.btn { padding: 10px 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; }
 .btn-start { background-color: var(--accent-primary); }
 .btn-pause { background-color: var(--accent-paused); display: none; }
 .btn-reset { background-color: #636e72; }
 .btn-add { background-color: var(--accent-running); }
-.btn-icon { background: transparent; color: var(--text-secondary); padding: 5px; font-size: 1.2rem; }
+.btn-icon { background: transparent; color: var(--text-secondary); padding: 5px; font-size: 1.1rem; }
 .btn-icon:hover { color: var(--text-primary); }
 
 .timer-card.running .btn-start { display: none; }
 .timer-card.running .btn-pause { display: inline-flex; }
 
-select { background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 5px; max-width: 110px; }
-footer { margin-top: 50px; text-align: center; padding-bottom: 30px;}
+select { background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 5px; max-width: 100px; }
+footer { margin-top: 30px; text-align: center; padding-bottom: 20px;}
 .text-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; text-decoration: underline; }
+
+
+/* --- HIGH SCALING / MOBILE FIXES --- */
+/* This kicks in when the screen "feels" small (like 300% zoom) */
+@media (max-width: 800px) {
+    body { padding: 10px; }
+    
+    /* Force 1 column even if Grid is selected */
+    .timers-container.grid-view { grid-template-columns: 1fr; }
+    
+    /* Make cards more compact */
+    .timer-card { padding: 15px; margin-bottom: 5px; }
+    
+    /* Shrink Header/Footer elements */
+    h2 { font-size: 1.2rem; margin: 0; }
+    .top-bar { margin-bottom: 10px; }
+    .tab-actions { padding: 10px; }
+    
+    /* Make buttons slightly smaller */
+    .btn { padding: 8px 12px; font-size: 0.9rem; }
+    
+    /* Shrink inputs */
+    .timer-name { font-size: 1rem; }
+    .tab-name-input { font-size: 1rem; width: 120px; }
+}
