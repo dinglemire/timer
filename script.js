@@ -59,10 +59,8 @@ function init() {
     if (saved) {
         appData = JSON.parse(saved);
         if(!appData.tabs) appData.tabs = [];
-        // Migration support for older saves without layout
         if(!appData.layout) appData.layout = 'list';
     } else {
-        // FIX: Default first tab is now "Tab 1"
         createTab('Tab 1', true);
     }
     
@@ -102,7 +100,6 @@ setInterval(() => {
         });
     });
 
-    // Browser Title Update
     if (activeTimersCount > 0 && lowestTime !== Infinity) {
         document.title = `(${formatTime(lowestTime)}) ProTimer`;
     } else {
@@ -121,8 +118,6 @@ function createTab(name, isFirst = false) {
         timers: []
     };
     
-    // Create default timer for the new tab
-    // We pass '1' because it's the first timer in this tab
     const timerId = Date.now() + 1;
     newTab.timers.push(createTimerObject(timerId, 60, 1)); 
 
@@ -167,7 +162,6 @@ function renameCurrentTab(newName) {
 function createTimerObject(id, duration, countNumber) {
     return {
         id: id,
-        // FIX: Naming logic "Timer 1", "Timer 2" etc.
         name: `Timer ${countNumber}`,
         totalDuration: duration,
         remaining: duration,
@@ -181,10 +175,8 @@ function addTimerToCurrentTab() {
     const tab = appData.tabs.find(t => t.id === appData.activeTabId);
     if (!tab) return;
     
-    // FIX: Calculate next timer number based on existing length
     const nextNum = tab.timers.length + 1;
     
-    // Default 1 Minute (60 seconds)
     tab.timers.push(createTimerObject(Date.now(), 60, nextNum)); 
     saveData();
     renderTimers();
@@ -235,17 +227,6 @@ function updateTimerProp(timerId, prop, value) {
     saveData();
 }
 
-function adjustTime(timerId, seconds) {
-    const tab = appData.tabs.find(t => t.id === appData.activeTabId);
-    const timer = tab.timers.find(t => t.id === timerId);
-    if (timer.remaining + seconds < 0) return;
-    timer.totalDuration += seconds;
-    timer.remaining += seconds;
-    if (timer.totalDuration < 0) timer.totalDuration = 0;
-    saveData();
-    renderTimers();
-}
-
 // --- DOM RENDERERS ---
 function renderTabs() {
     const list = document.getElementById('tabs-list');
@@ -294,12 +275,6 @@ function renderTimers() {
             </div>
 
             <div class="timer-display">${formatTime(timer.remaining)}</div>
-
-            <div class="quick-controls" ${timer.isRunning ? 'style="visibility:hidden"' : ''}>
-                <button class="btn-tiny" onclick="adjustTime(${timer.id}, -60)">-1m</button>
-                <button class="btn-tiny" onclick="adjustTime(${timer.id}, 60)">+1m</button>
-                <button class="btn-tiny" onclick="adjustTime(${timer.id}, 300)">+5m</button>
-            </div>
 
             <div class="edit-inputs">
                 <input type="number" id="h-${timer.id}" value="${h}" min="0"> h
@@ -368,7 +343,6 @@ function applyTheme(themeName) {
     saveData();
 }
 
-// FIX: Layout switching logic
 function applyLayout(mode) {
     appData.layout = mode;
     const container = document.getElementById('timers-list');
