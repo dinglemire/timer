@@ -11,16 +11,24 @@
 
     <div class="app-container">
         
-        <!-- Header: Themes & Global Settings -->
+        <!-- Header: Themes & Layout -->
         <div class="top-bar">
             <h2><i class="fa-solid fa-stopwatch"></i> ProTimer</h2>
-            <div class="theme-control">
-                <label>Theme: </label>
-                <select id="theme-select">
-                    <option value="theme-dark">Default Dark</option>
-                    <option value="theme-steam">Steam Blue</option>
-                    <option value="theme-light">Clean White</option>
-                </select>
+            
+            <div class="controls-group">
+                <!-- Layout Toggle -->
+                <button id="layout-toggle-btn" class="btn-icon-header" title="Toggle Grid/List View">
+                    <i class="fa-solid fa-table-cells-large"></i> View
+                </button>
+
+                <!-- Theme Select -->
+                <div class="theme-control">
+                    <select id="theme-select">
+                        <option value="theme-dark">Default Dark</option>
+                        <option value="theme-steam">Steam Blue</option>
+                        <option value="theme-light">Clean White</option>
+                    </select>
+                </div>
             </div>
         </div>
 
