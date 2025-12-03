@@ -3,26 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Timer App</title>
+    <title>Pro Multi-Timer</title>
     <link rel="stylesheet" href="style.css">
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="theme-dark">
 
-    <div class="container">
-        <header>
-            <h1><i class="fa-solid fa-clock"></i> Multi-Timer</h1>
-            <button id="add-timer-btn" class="btn btn-add"><i class="fa-solid fa-plus"></i> Add Another Timer</button>
-        </header>
+    <div class="app-container">
+        
+        <!-- Header: Themes & Global Settings -->
+        <div class="top-bar">
+            <h2><i class="fa-solid fa-stopwatch"></i> ProTimer</h2>
+            <div class="theme-control">
+                <label>Theme: </label>
+                <select id="theme-select">
+                    <option value="theme-dark">Default Dark</option>
+                    <option value="theme-steam">Steam Blue</option>
+                    <option value="theme-light">Clean White</option>
+                </select>
+            </div>
+        </div>
 
-        <div id="timers-list">
-            <!-- Timers will be injected here by JavaScript -->
+        <!-- Tab Navigation -->
+        <div class="tabs-wrapper">
+            <div id="tabs-list" class="tabs-list">
+                <!-- Tabs generated here -->
+            </div>
+            <button id="add-tab-btn" class="tab-btn-add" title="Add New Tab"><i class="fa-solid fa-plus"></i></button>
+        </div>
+
+        <!-- Current Tab Controls -->
+        <div class="tab-actions">
+            <div class="tab-info">
+                <input type="text" id="current-tab-name" class="tab-name-input" placeholder="Tab Name">
+                <button id="delete-tab-btn" class="btn-text-danger" title="Delete current tab"><i class="fa-solid fa-trash"></i> Delete Tab</button>
+            </div>
+            <button id="add-timer-btn" class="btn btn-add"><i class="fa-solid fa-plus"></i> Add Timer (1 min)</button>
+        </div>
+
+        <!-- Timers Container -->
+        <div id="timers-list" class="timers-container">
+            <!-- Timers injected here -->
         </div>
 
         <footer>
-            <button id="clear-all-btn" class="text-btn">Reset All Data</button>
+            <button id="clear-data-btn" class="text-btn">Reset Everything</button>
         </footer>
+
     </div>
 
     <script src="script.js"></script>
