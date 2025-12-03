@@ -52,8 +52,12 @@ body {
     transition: background 0.3s, color 0.3s;
 }
 
+/* 
+   CHANGED: max-width is now 95% of the screen. 
+   This allows 3 or 4 timers to fit if your monitor is wide enough.
+*/
 .app-container { 
-    max-width: 900px; 
+    max-width: 95%; 
     margin: 0 auto; 
     width: 100%;
 }
@@ -123,11 +127,17 @@ body {
     gap: 15px;
 }
 
-/* Grid View Modifier (2 Columns) */
+/* 
+   CHANGED: Grid View is now "Responsive Auto-Fit".
+   minmax(320px, 1fr) means: "Cards must be at least 320px wide, 
+   but if there is more space, add another column."
+   This will allow 3 or 4 columns on wide screens automatically.
+*/
 .timers-container.grid-view {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     align-items: start;
+    gap: 20px;
 }
 
 /* Timer Card */
@@ -152,15 +162,19 @@ body {
 .timer-name:focus { outline: none; border-bottom: 1px solid var(--accent-running); }
 
 /* --- RESPONSIVE BIG DISPLAY --- */
-/* 'clamp' makes it responsive: Min 3.5rem, Preferred 15% of width, Max 6rem */
 .timer-display { 
-    font-size: clamp(3.5rem, 15vw, 6rem); 
+    font-size: clamp(3.5rem, 12vw, 5.5rem); 
     font-family: 'Courier New', monospace; 
     font-weight: 700;
     margin: 5px 0; 
     text-align: center; 
     line-height: 1.1;
     letter-spacing: -2px;
+}
+
+/* Slightly smaller font specifically when in Grid View to help fit more columns */
+.timers-container.grid-view .timer-display {
+    font-size: clamp(3rem, 10vw, 5rem);
 }
 
 /* Edit Inputs */
@@ -189,27 +203,15 @@ select { background: var(--input-bg); color: var(--text-primary); border: 1px so
 footer { margin-top: 30px; text-align: center; padding-bottom: 20px;}
 .text-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; text-decoration: underline; }
 
-
-/* --- HIGH SCALING / MOBILE FIXES --- */
-/* This kicks in when the screen "feels" small (like 300% zoom) */
+/* --- MOBILE FIXES --- */
 @media (max-width: 800px) {
     body { padding: 10px; }
-    
-    /* Force 1 column even if Grid is selected */
     .timers-container.grid-view { grid-template-columns: 1fr; }
-    
-    /* Make cards more compact */
     .timer-card { padding: 15px; margin-bottom: 5px; }
-    
-    /* Shrink Header/Footer elements */
     h2 { font-size: 1.2rem; margin: 0; }
     .top-bar { margin-bottom: 10px; }
     .tab-actions { padding: 10px; }
-    
-    /* Make buttons slightly smaller */
     .btn { padding: 8px 12px; font-size: 0.9rem; }
-    
-    /* Shrink inputs */
     .timer-name { font-size: 1rem; }
     .tab-name-input { font-size: 1rem; width: 120px; }
 }
