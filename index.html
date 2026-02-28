@@ -46,7 +46,10 @@
                 <input type="text" id="current-tab-name" class="tab-name-input" placeholder="Tab Name">
                 <button id="delete-tab-btn" class="btn-text-danger" title="Delete current tab"><i class="fa-solid fa-trash"></i> Delete Tab</button>
             </div>
-            <button id="add-timer-btn" class="btn btn-add"><i class="fa-solid fa-plus"></i> Add Timer (1 min)</button>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button id="add-timer-btn" class="btn btn-add"><i class="fa-solid fa-plus"></i> Add Timer</button>
+                <button id="add-stopwatch-btn" class="btn" style="background-color: var(--accent-paused);"><i class="fa-solid fa-stopwatch-20"></i> Add Work/Rest</button>
+            </div>
         </div>
 
         <!-- Timers Container -->
