@@ -1,15 +1,13 @@
-/* --- THEMES --- */
+/* --- THEME VARIABLES --- */
 :root {
-    /* Default Dark */
+    /* Default Dark (Green Focus) */
     --bg-color: #121212;
     --card-bg: #1e1e1e;
     --text-primary: #e0e0e0;
     --text-secondary: #aaaaaa;
-    --accent-primary: #00b894; /* Green */
-    --accent-running: #0984e3; /* Blue */
-    --accent-paused: #ff7675;  /* Red */
-    --tab-bg: #2d3436;
-    --tab-active: #1e1e1e;
+    --accent-primary: #00b894; /* Stroke Green */
+    --accent-running: #0984e3; /* Break Blue */
+    --accent-paused: #ff4757;  /* Breaks Used Red */
     --input-bg: #333;
     --border-color: #444;
 }
@@ -22,10 +20,6 @@ body.theme-steam {
     --accent-primary: #4c6b22;
     --accent-running: #66c0f4;
     --accent-paused: #a33838;
-    --tab-bg: #0f1217;
-    --tab-active: #1b2838;
-    --input-bg: #2a475e;
-    --border-color: #2a475e;
 }
 
 body.theme-light {
@@ -36,254 +30,168 @@ body.theme-light {
     --accent-primary: #00b894;
     --accent-running: #0984e3;
     --accent-paused: #d63031;
-    --tab-bg: #dfe6e9;
-    --tab-active: #ffffff;
-    --input-bg: #f1f2f6;
-    --border-color: #dcdde1;
 }
+
 body.theme-amber {
-    --bg-color: #0f0b08;         /* Deepest charcoal brown */
-    --card-bg: #1a140f;          /* Dark chocolate / coffee */
-    --text-primary: #ff9f43;     /* Warm Amber */
-    --text-secondary: #ad7d52;   /* Muted Gold */
-    --accent-primary: #ee5253;   /* Stroke: Red-Orange */
-    --accent-running: #feca57;   /* Break: Warm Yellow */
-    --accent-paused: #ff4757;    /* Breaks Used: Bright Red */
-    --tab-bg: #1a140f;
-    --tab-active: #2d2116;
-    --input-bg: #2d2116;
-    --border-color: #3d2d1e;
+    --bg-color: #0f0b08;
+    --card-bg: #1a140f;
+    --text-primary: #ff9f43;
+    --text-secondary: #ad7d52;
+    --accent-primary: #ee5253;
+    --accent-running: #feca57;
+    --accent-paused: #ff4757;
 }
 
-/* Optional: Add a subtle orange glow to the cards in this theme */
-body.theme-amber .timer-card {
-    box-shadow: 0 4px 15px rgba(255, 159, 67, 0.05);
-}
-
-/* --- LAYOUT --- */
+/* --- BASE STYLES --- */
 body {
     background-color: var(--bg-color);
     color: var(--text-primary);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
-    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
     transition: background 0.3s, color 0.3s;
 }
 
-/* Full width container */
 .app-container { 
-    max-width: 95%; 
-    margin: 0 auto; 
-    width: 100%;
+    width: 95%;
+    max-width: 850px;
+    padding: 20px;
 }
 
-/* Top Bar */
-.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-.controls-group { display: flex; gap: 15px; align-items: center; }
-
-.btn-icon-header {
-    background: var(--input-bg);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-.btn-icon-header:hover { background: var(--border-color); }
-
-.theme-control select {
-    background: var(--input-bg);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    padding: 6px;
-    border-radius: 4px;
+/* --- TOP BAR --- */
+.top-bar { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px; 
 }
 
-/* Tabs */
-.tabs-wrapper { display: flex; gap: 5px; overflow-x: auto; border-bottom: 2px solid var(--border-color); padding-bottom: 0; }
-.tabs-list { display: flex; gap: 5px; }
-.tab-btn {
-    background: var(--tab-bg);
-    color: var(--text-secondary);
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    border-radius: 8px 8px 0 0;
-    font-weight: bold;
-    opacity: 0.7;
-    white-space: nowrap;
-}
-.tab-btn.active {
+h2 { margin: 0; font-size: 1.2rem; opacity: 0.8; }
+
+select {
     background: var(--card-bg);
-    color: var(--accent-running);
-    opacity: 1;
-    border-bottom: 2px solid var(--accent-running);
-}
-.tab-btn-add { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; padding: 0 15px; }
-.tab-btn-add:hover { color: var(--accent-primary); }
-
-/* Tab Actions */
-.tab-actions {
-    display: flex; justify-content: space-between; align-items: center;
-    background: var(--card-bg); padding: 15px; margin-bottom: 20px;
-    border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    flex-wrap: wrap; gap: 10px;
-}
-.tab-name-input {
-    background: transparent; border: none; border-bottom: 1px solid var(--border-color);
-    color: var(--text-primary); font-size: 1.2rem; width: 150px;
-}
-.tab-name-input:focus { outline: none; border-bottom: 1px solid var(--accent-running); }
-.btn-text-danger { background: none; border: none; color: var(--accent-paused); cursor: pointer; font-size: 0.9rem; margin-left: 10px;}
-
-/* --- TIMERS CONTAINER (GRID vs LIST) --- */
-.timers-container { display: flex; flex-direction: column; gap: 15px; }
-
-.timers-container.grid-view {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    align-items: start;
-    gap: 20px;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
-/* Timer Card */
+/* --- THE MAIN TIMER CARD --- */
 .timer-card {
     background-color: var(--card-bg);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    border-left: 5px solid var(--accent-primary);
-    transition: transform 0.2s;
-    overflow: hidden; 
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    border-left: 8px solid var(--border-color);
+    border-right: 8px solid var(--border-color);
+    text-align: center;
+    transition: all 0.3s ease;
 }
 
-.timer-card.running { border-left-color: var(--accent-running); }
-.timer-card.paused { border-left-color: var(--accent-paused); }
-.timer-card.finished { border-left-color: #fdcb6e; }
-
-.timer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-.timer-name {
-    font-size: 1.1rem; background: transparent; border: none;
-    color: var(--text-primary); border-bottom: 1px solid transparent; width: 140px;
+/* --- PULSE ANIMATIONS --- */
+@keyframes pulse-stroke {
+    0% { box-shadow: 0 0 15px rgba(0, 184, 148, 0.2); border-color: var(--accent-primary); }
+    50% { box-shadow: 0 0 40px rgba(0, 184, 148, 0.5); border-color: #55efc4; background-color: rgba(0, 184, 148, 0.05); }
+    100% { box-shadow: 0 0 15px rgba(0, 184, 148, 0.2); border-color: var(--accent-primary); }
 }
-.timer-name:focus { outline: none; border-bottom: 1px solid var(--accent-running); }
 
+@keyframes pulse-rest {
+    0% { box-shadow: 0 0 15px rgba(9, 132, 227, 0.2); border-color: var(--accent-running); }
+    50% { box-shadow: 0 0 40px rgba(9, 132, 227, 0.5); border-color: #74b9ff; background-color: rgba(9, 132, 227, 0.05); }
+    100% { box-shadow: 0 0 15px rgba(9, 132, 227, 0.2); border-color: var(--accent-running); }
+}
+
+.timer-card.running { animation: pulse-stroke 1.5s infinite ease-in-out; }
+.timer-card.resting { animation: pulse-rest 3s infinite ease-in-out; }
+
+/* --- DISPLAYS --- */
 .timer-display { 
-    font-size: clamp(2.5rem, 10vw, 4.5rem); 
-    font-family: 'Courier New', monospace; 
+    font-size: clamp(4rem, 15vw, 7.5rem); 
+    font-family: 'Courier New', Courier, monospace; 
     font-weight: 700;
-    margin: 5px 0; 
-    text-align: center; 
-    line-height: 1.2;
-    letter-spacing: -1px; 
-    white-space: nowrap;  
+    margin: 10px 0; 
+    letter-spacing: -2px;
 }
 
-.timers-container.grid-view .timer-display {
-    font-size: clamp(2.2rem, 8vw, 3.8rem);
+.mode-indicator {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 25px;
+    text-transform: uppercase;
 }
 
-/* Edit Inputs */
-.edit-inputs { display: none; justify-content: center; gap: 5px; margin: 15px 0; }
-.edit-inputs input { width: 50px; padding: 8px; font-size: 1.1rem; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-primary); text-align: center; border-radius: 4px; }
-.timer-card.editing .timer-display { display: none; }
-.timer-card.editing .edit-inputs { display: flex; }
+#total-clock { font-weight: bold; font-family: monospace; }
 
-.progress-container { width: 100%; height: 10px; background: var(--border-color); border-radius: 6px; margin-top: 15px; overflow: hidden; }
-.progress-bar { height: 100%; width: 0%; background-color: var(--accent-primary); transition: width 0.2s linear; }
+/* --- CONTROLS & BUTTONS --- */
+.timer-controls { 
+    display: flex; 
+    gap: 12px; 
+    justify-content: center; 
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
 
-/* Controls & Buttons */
-.timer-controls { display: flex; gap: 8px; margin-top: 15px; justify-content: center; flex-wrap: wrap; }
-.btn { padding: 10px 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; }
-.btn-start { background-color: var(--accent-primary); }
-.btn-pause { background-color: var(--accent-paused); display: none; }
-.btn-reset { background-color: #636e72; }
-.btn-add { background-color: var(--accent-running); }
-.btn-icon { background: transparent; color: var(--text-secondary); padding: 5px; font-size: 1.1rem; border: none; cursor: pointer;}
-.btn-icon:hover { color: var(--text-primary); }
+.btn { 
+    padding: 12px 20px; 
+    border: none; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    color: white; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    font-size: 1rem;
+    transition: transform 0.1s, opacity 0.2s;
+}
 
-.timer-card.running .btn-start { display: none; }
-.timer-card.running .btn-pause { display: inline-flex; }
+.btn:hover { opacity: 0.9; transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
 
-select { background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 5px; max-width: 100px; }
-footer { margin-top: 30px; text-align: center; padding-bottom: 20px;}
-.text-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; text-decoration: underline; }
+.btn-reset { 
+    background: transparent; 
+    color: var(--text-secondary); 
+    border: 1px solid var(--border-color); 
+}
 
-/* --- STOPWATCH & SPLITS EXTENSION --- */
+/* --- SPLITS / LOGS --- */
 .splits-list {
-    margin-top: 15px;
-    max-height: 150px;
-    overflow-y: auto;
-    background: var(--input-bg);
-    border-radius: 4px;
-    padding: 10px;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.95rem;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 15px;
+    text-align: left;
+    font-family: monospace;
 }
+
 .split-item {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 5px;
-    padding-bottom: 5px;
-    border-bottom: 1px dashed var(--border-color);
-}
-.split-item:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-.split-work { color: var(--accent-primary); font-weight: bold; }
-.split-rest { color: var(--accent-running); font-weight: bold; }
-.mode-indicator { 
-    text-align: center; 
-    font-weight: bold; 
-    text-transform: uppercase; 
-    margin-top: -5px; 
-    letter-spacing: 1px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-color);
 }
 
-/* --- MOBILE & ZOOM FIXES --- */
-@media (max-width: 800px) {
-    body { padding: 10px; }
-    .timers-container.grid-view { grid-template-columns: 1fr; }
-    .timer-card { padding: 15px; margin-bottom: 5px; }
-    h2 { font-size: 1.2rem; margin: 0; }
-    .top-bar { margin-bottom: 10px; }
-    .tab-actions { padding: 10px; }
-    .btn { padding: 8px 12px; font-size: 0.9rem; }
-    .timer-name { font-size: 1rem; }
-    .tab-name-input { font-size: 1rem; width: 120px; }
+.split-item:last-child { border-bottom: none; }
+.split-item b { color: var(--text-primary); }
+
+/* --- FOOTER --- */
+footer { margin-top: 40px; text-align: center; }
+.text-btn { 
+    background: none; 
+    border: none; 
+    color: var(--text-secondary); 
+    text-decoration: underline; 
+    cursor: pointer; 
+    font-size: 0.85rem;
 }
 
-
-/* --- STROKE PULSE (GREEN) --- */
-@keyframes pulse-stroke {
-    0% { box-shadow: 0 0 10px rgba(0, 184, 148, 0.2); border-left-color: var(--accent-primary); border-right-color: var(--accent-primary); }
-    50% { box-shadow: 0 0 30px rgba(0, 184, 148, 0.5); border-left-color: #55efc4; border-right-color: #55efc4; background-color: rgba(0, 184, 148, 0.05); }
-    100% { box-shadow: 0 0 10px rgba(0, 184, 148, 0.2); border-left-color: var(--accent-primary); border-right-color: var(--accent-primary); }
+/* --- MOBILE OPTIMIZATION --- */
+@media (max-width: 600px) {
+    .timer-card { padding: 20px; }
+    .timer-controls { gap: 8px; }
+    .btn { padding: 10px 14px; font-size: 0.9rem; }
 }
-
-/* --- REST PULSE (BLUE) --- */
-@keyframes pulse-rest {
-    0% { box-shadow: 0 0 10px rgba(9, 132, 227, 0.2); border-left-color: var(--accent-running); border-right-color: var(--accent-running); }
-    50% { box-shadow: 0 0 30px rgba(9, 132, 227, 0.5); border-left-color: #74b9ff; border-right-color: #74b9ff; background-color: rgba(9, 132, 227, 0.05); }
-    100% { box-shadow: 0 0 10px rgba(9, 132, 227, 0.2); border-left-color: var(--accent-running); border-right-color: var(--accent-running); }
-}
-
-/* Apply Green Pulse to Stroke */
-.timer-card.running {
-    border-left: 8px solid var(--accent-primary);
-    border-right: 8px solid var(--accent-primary);
-    animation: pulse-stroke 1.5s infinite ease-in-out;
-}
-
-/* Apply Blue Pulse to Rest */
-.timer-card.resting {
-    border-left: 8px solid var(--accent-running);
-    border-right: 8px solid var(--accent-running);
-    animation: pulse-rest 3s infinite ease-in-out; /* Slower pulse for resting */
-}
-
-/* Make the clock glow based on the mode */
-.timer-card.running .timer-display { text-shadow: 0 0 15px rgba(0, 184, 148, 0.6); }
-.timer-card.resting .timer-display { text-shadow: 0 0 15px rgba(9, 132, 227, 0.6); }

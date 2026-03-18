@@ -3,65 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Multi-Timer</title>
+    <title>Stroke/Break Trainer</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="theme-dark">
 
     <div class="app-container">
-        
-        <!-- Header: Themes & Layout -->
         <div class="top-bar">
-            <h2><i class="fa-solid fa-stopwatch"></i> ProTimer</h2>
-            
-            <div class="controls-group">
-                <!-- Layout Toggle -->
-                <button id="layout-toggle-btn" class="btn-icon-header" title="Toggle Grid/List View">
-                    <i class="fa-solid fa-table-cells-large"></i> View
-                </button>
-
-                <!-- Theme Select -->
-                <div class="theme-control">
-                    <select id="theme-select">
-                        <option value="theme-dark">Default Dark</option>
-                        <option value="theme-steam">Steam Blue</option>
-                        <option value="theme-light">Clean White</option>
-                        <option value="theme-amber">Ember Orange (Ambient)</option> 
-                    </select>
-                </div>
+            <h2><i class="fa-solid fa-fire"></i> Training Console</h2>
+            <div class="theme-control">
+                <select id="theme-select">
+                    <option value="theme-dark">Default Dark</option>
+                    <option value="theme-steam">Steam Blue</option>
+                    <option value="theme-light">Clean White</option>
+                    <option value="theme-amber">Ember Orange</option>
+                </select>
             </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="tabs-wrapper">
-            <div id="tabs-list" class="tabs-list">
-                <!-- Tabs generated here -->
-            </div>
-            <button id="add-tab-btn" class="tab-btn-add" title="Add New Tab"><i class="fa-solid fa-plus"></i></button>
-        </div>
-
-        <!-- Current Tab Controls -->
-        <div class="tab-actions">
-            <div class="tab-info">
-                <input type="text" id="current-tab-name" class="tab-name-input" placeholder="Tab Name">
-                <button id="delete-tab-btn" class="btn-text-danger" title="Delete current tab"><i class="fa-solid fa-trash"></i> Delete Tab</button>
-            </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button id="add-timer-btn" class="btn btn-add"><i class="fa-solid fa-plus"></i> Add Timer</button>
-                <button id="add-stopwatch-btn" class="btn" style="background-color: var(--accent-paused);">Add Work/Break</button>
-                                   </div>
-        </div>
-
-        <!-- Timers Container -->
-        <div id="timers-list" class="timers-container">
-            <!-- Timers injected here -->
+        <div id="main-timer-container">
+            <!-- The training timer will live here exclusively -->
         </div>
 
         <footer>
-            <button id="clear-data-btn" class="text-btn">Reset Everything</button>
+            <button id="clear-data-btn" class="text-btn">Reset Session Stats</button>
         </footer>
-
     </div>
 
     <script src="script.js"></script>
