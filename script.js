@@ -1,10 +1,14 @@
 /* --- STATE MANAGEMENT --- */
 let appData = {
     theme: 'theme-dark',
-    layout: 'list', // 'list' or 'grid'
+    layout: 'list', 
     activeTabId: 1,
     tabs: []
 };
+
+// Cooldown to prevent accidental double-taps (1 second)
+let lastActionTime = 0;
+const INPUT_COOLDOWN = 1000; 
 
 // Audio Context
 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -42,6 +46,15 @@ function playSound(type) {
         gain2.gain.setValueAtTime(0.05, now);
         osc2.start(now + 0.15);
         osc2.stop(now + 0.25);
+    }
+    else if (type === 'finish') {
+        // A "descending" sound for ending the session
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+        gainNode.gain.setValueAtTime(0.1, now);
+        osc.start();
+        osc.stop(now + 0.5);
     }
     else if (type === 'alarm') {
         osc.type = 'sawtooth';
@@ -170,7 +183,7 @@ function createTimerObject(id, duration, countNumber) {
 
 function createStopwatchObject(id, countNumber) {
     return {
-        id: id, type: 'stopwatch', name: `Stroke/Rest ${countNumber}`,
+        id: id, type: 'stopwatch', name: `Training Log ${countNumber}`,
         isRunning: false, currentMode: 'none', 
         currentSessionTime: 0, totalTime: 0, currentSet: 1, splits: []
     };
@@ -246,6 +259,7 @@ function setStopwatchMode(id, newMode) {
     }
 
     if (newMode === 'stopped') {
+        playSound('finish');
         timer.isRunning = false;
         timer.currentMode = 'stopped';
     } else {
@@ -260,7 +274,7 @@ function setStopwatchMode(id, newMode) {
 }
 
 function resetStopwatch(id) {
-    if (!confirm("Reset Stroke/Rest stats?")) return;
+    if (!confirm("Reset Training stats?")) return;
     const tab = appData.tabs.find(t => t.id === appData.activeTabId);
     const timer = tab.timers.find(t => t.id === id);
     timer.isRunning = false;
@@ -280,42 +294,30 @@ function exportStopwatch(id) {
     const now = new Date();
     const weekday = now.toLocaleDateString('en-GB', { weekday: 'long' });
     const dateStr = now.toLocaleDateString('en-GB'); 
-    // Add time to filename (e.g., 14:30) to prevent overwriting files
     const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
 
     let totalStrokeSec = 0;
     let totalRestSec = 0;
     let breakCount = 0;
 
-    // Calculate totals
     timer.splits.forEach(s => {
-        if (s.mode === 'work') {
-            totalStrokeSec += s.duration;
-        } else if (s.mode === 'rest') {
-            totalRestSec += s.duration;
-            breakCount++; // Only increment for actual breaks taken
-        }
+        if (s.mode === 'work') totalStrokeSec += s.duration;
+        else if (s.mode === 'rest') { totalRestSec += s.duration; breakCount++; }
     });
 
-    // Add current session if still running
-    if (timer.currentMode === 'work') {
-        totalStrokeSec += timer.currentSessionTime;
-    } else if (timer.currentMode === 'rest') {
-        totalRestSec += timer.currentSessionTime;
-        // Optional: decide if you want to count a break that hasn't finished yet
-        // breakCount++; 
-    }
+    if (timer.currentMode === 'work') totalStrokeSec += timer.currentSessionTime;
+    else if (timer.currentMode === 'rest') { totalRestSec += timer.currentSessionTime; breakCount++; }
 
     let text = `=== STROKE / REST TRAINING LOG ===\n`;
     text += `Date: ${dateStr} (${weekday})\n`;
     text += `Total Session Time: ${formatTime(timer.totalTime)}\n`;
     text += `Total Stroke Duration: ${formatTime(totalStrokeSec)}\n`;
     text += `Total Rest Duration: ${formatTime(totalRestSec)}\n`;
-    text += `Total Breaks Taken: ${breakCount}\n`; // Changed phrasing
+    text += `Total Breaks Taken: ${breakCount}\n`; 
     text += `------------------------------------------\n\n`;
     
     timer.splits.forEach(s => {
-        const modeLabel = s.mode === 'work' ? 'STROKE' : 'BREAK'; // Changed REST to BREAK
+        const modeLabel = s.mode === 'work' ? 'STROKE' : 'BREAK';
         text += `Phase ${s.set} [${modeLabel}] - Duration: ${formatTime(s.duration)}\n`;
     });
     
@@ -328,7 +330,6 @@ function exportStopwatch(id) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    // Filename now looks like: Training_Log_18-03-2026_1430.txt
     a.download = `Training_Log_${dateStr.replace(/\//g, '-')}_${timeStr}.txt`;
     a.click();
     URL.revokeObjectURL(url);
@@ -408,15 +409,16 @@ function renderTimers() {
             `;
         } 
         else if (type === 'stopwatch') {
+            const currentBreaks = timer.splits.filter(s => s.mode === 'rest').length + (timer.currentMode === 'rest' ? 1 : 0);
             div.className = `timer-card ${timer.isRunning && timer.currentMode === 'work' ? 'running' : (timer.isRunning && timer.currentMode === 'rest' ? 'resting' : '')}`;
-            if (timer.currentMode === 'rest') div.style.borderLeftColor = 'var(--accent-running)';
 
             div.innerHTML = `
                 <div class="timer-header">
                     <input type="text" class="timer-name" value="${timer.name}" onchange="updateTimerProp(${timer.id}, 'name', this.value)">
-                    <div>
-                        <button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button>
+                    <div style="font-weight:bold; color: var(--accent-paused); font-size: 1.1rem;">
+                        BREAKS USED: ${currentBreaks}
                     </div>
+                    <button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
                 <div style="text-align:center; color: var(--text-secondary); margin-top:5px; font-size: 0.9rem;" class="total-time-display">
                     Total Session Time: ${formatTime(timer.totalTime)}
@@ -425,17 +427,17 @@ function renderTimers() {
                     ${formatTime(timer.currentSessionTime)}
                 </div>
                 <div class="mode-indicator" style="color: ${timer.currentMode === 'work' ? 'var(--accent-primary)' : timer.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-secondary)'}">
-    ${timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode === 'stopped' ? 'Stopped' : 'Ready'))}
-</div>
+                    ${timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode === 'stopped' ? 'Stopped' : 'Ready'))}
+                </div>
                 <div class="timer-controls">
                     <button class="btn" style="background:var(--accent-primary);" onclick="setStopwatchMode(${timer.id}, 'work')">
                         <i class="fa-solid fa-fire"></i> Stroke
                     </button>
                     <button class="btn" style="background:var(--accent-running);" onclick="setStopwatchMode(${timer.id}, 'rest')">
-                        <i class="fa-solid fa-bed"></i> Rest
+                        <i class="fa-solid fa-bed"></i> Break
                     </button>
-                    <button class="btn" style="background:var(--accent-paused);" onclick="setStopwatchMode(${timer.id}, 'stopped')" title="Stop Phase">
-                        <i class="fa-solid fa-stop"></i>
+                    <button class="btn" style="background:var(--accent-paused);" onclick="setStopwatchMode(${timer.id}, 'stopped')" title="PONR / Stop">
+                        <i class="fa-solid fa-stop"></i> Stop
                     </button>
                     <button class="btn btn-reset" onclick="exportStopwatch(${timer.id})" title="Export TXT">
                         <i class="fa-solid fa-file-export"></i>
@@ -445,14 +447,13 @@ function renderTimers() {
                     </button>
                 </div>
                 <div class="splits-list">
-    ${timer.splits.map(s => `
-        <div class="split-item">
-            <span class="split-${s.mode}">${s.mode === 'work' ? 'Stroke' : 'Break #' + s.set}</span>
-            <span>${formatTime(s.duration)}</span>
-        </div>
-    `).reverse().join('')} 
-    ${timer.splits.length === 0 ? '<div style="text-align:center; opacity:0.5; margin-top:10px;">No entries yet</div>' : ''}
-</div>
+                    ${timer.splits.map(s => `
+                        <div class="split-item">
+                            <span class="split-${s.mode}">${s.mode === 'work' ? 'Stroke' : 'Break #' + s.set}</span>
+                            <span>${formatTime(s.duration)}</span>
+                        </div>
+                    `).reverse().join('')} 
+                </div>
             `;
         }
 
@@ -475,9 +476,6 @@ function updateTimerDOM(timer) {
         if (progress) {
             const percent = timer.totalDuration > 0 ? (timer.remaining / timer.totalDuration) * 100 : 0;
             progress.style.width = `${percent}%`;
-            const rootStyles = getComputedStyle(document.body);
-            if (percent < 10) progress.style.backgroundColor = rootStyles.getPropertyValue('--accent-paused');
-            else progress.style.backgroundColor = rootStyles.getPropertyValue('--accent-primary');
         }
     } 
     else if (type === 'stopwatch') {
@@ -535,24 +533,35 @@ document.getElementById('clear-data-btn').addEventListener('click', () => {
     }
 });
 
-// SPACEBAR SHORTCUT
-window.addEventListener('keydown', (e) => {
+// --- KEYBOARD & MOUSE SHORTCUTS ---
+function handleActionInput(e) {
+    // Prevent double-taps within 1 second
+    const now = Date.now();
+    if (now - lastActionTime < INPUT_COOLDOWN) return;
+
+    // Check if we are typing in an input field
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
-    if (e.code === 'Space') {
-        e.preventDefault(); 
-        const tab = appData.tabs.find(t => t.id === appData.activeTabId);
-        const stopwatch = tab.timers.find(t => t.type === 'stopwatch');
-        
-        if (stopwatch) {
-            // Logic: If in Stroke, go to Rest. If in Rest (or Not Started), go to Stroke.
-            if (stopwatch.currentMode === 'work') {
-                setStopwatchMode(stopwatch.id, 'rest');
-            } else {
-                setStopwatchMode(stopwatch.id, 'work');
-            }
-        }
+    const tab = appData.tabs.find(t => t.id === appData.activeTabId);
+    const stopwatch = tab.timers.find(t => t.type === 'stopwatch');
+    if (!stopwatch) return;
+
+    // SPACE or MIDDLE CLICK: Toggle between Stroke/Break
+    if (e.code === 'Space' || e.button === 1) {
+        if (e.code === 'Space') e.preventDefault(); // Stop jumping
+        lastActionTime = now;
+        if (stopwatch.currentMode === 'work') setStopwatchMode(stopwatch.id, 'rest');
+        else setStopwatchMode(stopwatch.id, 'work');
     }
-});
+
+    // ENTER: Stop session (PONR reached)
+    if (e.code === 'Enter') {
+        lastActionTime = now;
+        setStopwatchMode(stopwatch.id, 'stopped');
+    }
+}
+
+window.addEventListener('keydown', handleActionInput);
+window.addEventListener('mousedown', (e) => { if (e.button === 1) handleActionInput(e); });
 
 init();
