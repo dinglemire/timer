@@ -47,19 +47,6 @@ function playSound(type) {
         gainNode.gain.setValueAtTime(0.1, now);
         osc.start(); osc.stop(now + 0.4);
     }
-    else if (type === 'finish_elite') {
-        // More triumphant sound for 20min+ sessions
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        gainNode.gain.setValueAtTime(0.1, now);
-        osc.start(now); osc.stop(now + 0.2);
-        const osc2 = audioCtx.createOscillator();
-        const g2 = audioCtx.createGain();
-        osc2.connect(g2); g2.connect(audioCtx.destination);
-        osc2.frequency.setValueAtTime(659.25, now + 0.2); // E5
-        g2.gain.setValueAtTime(0.1, now + 0.2);
-        osc2.start(now + 0.2); osc2.stop(now + 0.5);
-    }
 }
 
 // --- INITIALIZATION ---
@@ -86,6 +73,8 @@ setInterval(() => {
                 if (timer.type === 'stopwatch') {
                     timer.currentSessionTime++;
                     timer.totalTime++;
+                    
+                    // Break Warning Audio
                     if (timer.currentMode === 'rest' && timer.breakWarning > 0) {
                         if (timer.currentSessionTime === parseInt(timer.breakWarning)) {
                             playSound('warning');
@@ -119,7 +108,7 @@ function createTimerObject(id, duration, countNumber) {
 }
 
 function createStopwatchObject(id, countNumber) {
-    return { id, type: 'stopwatch', name: `Training Log ${countNumber}`, isRunning: false, currentMode: 'none', currentSessionTime: 0, totalTime: 0, currentSet: 1, splits: [], outcome: 'none', breakWarning: 0, isElite: false };
+    return { id, type: 'stopwatch', name: `Training Log ${countNumber}`, isRunning: false, currentMode: 'none', currentSessionTime: 0, totalTime: 0, currentSet: 1, splits: [], outcome: 'none', breakWarning: 0 };
 }
 
 function deleteTimer(timerId) {
@@ -139,11 +128,7 @@ function setStopwatchMode(id, newMode) {
     }
 
     if (newMode.includes('stopped')) {
-        // Check for "Elite" Status (20+ mins AND <= 5 breaks)
-        const breakCount = timer.splits.filter(s => s.mode === 'rest').length + (timer.currentMode === 'rest' ? 1 : 0);
-        timer.isElite = (timer.totalTime >= 1200 && breakCount <= 5);
-        
-        playSound(timer.isElite ? 'finish_elite' : 'finish_standard');
+        playSound('finish_standard');
         timer.isRunning = false;
         timer.currentMode = newMode;
         timer.outcome = newMode === 'stopped_release' ? 'RELEASED' : 'NO RELEASE';
@@ -153,7 +138,6 @@ function setStopwatchMode(id, newMode) {
         timer.currentSessionTime = 0;
         timer.isRunning = true;
         timer.outcome = 'none';
-        timer.isElite = false;
     }
     saveData(); renderTimers();
 }
@@ -162,7 +146,7 @@ function resetStopwatch(id) {
     if (!confirm("Reset Training stats?")) return;
     const tab = appData.tabs.find(t => t.id === appData.activeTabId);
     const timer = tab.timers.find(t => t.id === id);
-    timer.isRunning = false; timer.currentMode = 'none'; timer.currentSessionTime = 0; timer.totalTime = 0; timer.currentSet = 1; timer.splits = []; timer.outcome = 'none'; timer.isElite = false;
+    timer.isRunning = false; timer.currentMode = 'none'; timer.currentSessionTime = 0; timer.totalTime = 0; timer.currentSet = 1; timer.splits = []; timer.outcome = 'none';
     saveData(); renderTimers();
 }
 
@@ -175,20 +159,32 @@ function exportStopwatch(id) {
     const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
 
     let totalStrokeSec = 0, totalRestSec = 0, breakCount = 0;
+    let anyLongBreaks = false;
+
     timer.splits.forEach(s => {
-        if (s.mode === 'work') totalStrokeSec += s.duration;
-        else { totalRestSec += s.duration; breakCount++; }
+        if (s.mode === 'work') {
+            totalStrokeSec += s.duration;
+        } else {
+            totalRestSec += s.duration;
+            breakCount++;
+            if (s.duration > 50) anyLongBreaks = true; // Elite limit check
+        }
     });
 
+    // Check elite criteria
+    const isElite = (timer.totalTime >= 1200 && breakCount <= 5 && !anyLongBreaks);
+
     let text = `=== STROKE / REST TRAINING LOG ===\n`;
-    if (timer.isElite) text += `RANK: ⭐ ELITE PERFORMANCE ⭐\n`;
     text += `Date: ${dateStr} (${weekday})\n`;
     text += `Outcome: ${timer.outcome === 'none' ? 'In Progress' : timer.outcome}\n`;
+    if (isElite) text += `RANK: ⭐ ELITE PERFORMANCE ⭐\n`;
+    
     text += `Total Session Time: ${formatTime(timer.totalTime)}\n`;
     text += `Total Stroke Duration: ${formatTime(totalStrokeSec)}\n`;
     text += `Total Rest Duration: ${formatTime(totalRestSec)}\n`;
     text += `Total Breaks Taken: ${breakCount}\n`;
     text += `------------------------------------------\n\n`;
+    
     timer.splits.forEach(s => {
         text += `Phase ${s.set} [${s.mode === 'work' ? 'STROKE' : 'BREAK'}] - Duration: ${formatTime(s.duration)}\n`;
     });
@@ -231,7 +227,7 @@ function renderTimers() {
             div.innerHTML = `
                 <div class="timer-header">
                     <input type="text" class="timer-name" value="${timer.name}" onchange="updateTimerProp(${timer.id}, 'name', this.value)">
-                    <div style="font-weight:bold; color: ${currentBreaks > 5 ? 'var(--accent-paused)' : 'var(--text-secondary)'}; font-size: 1.1rem;">BREAKS USED: ${currentBreaks}</div>
+                    <div style="font-weight:bold; color: var(--text-secondary); font-size: 1.1rem;">BREAKS USED: ${currentBreaks}</div>
                     <button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
                 <div style="display:flex; justify-content:center; align-items:center; gap:15px; margin-top:5px;">
@@ -247,8 +243,8 @@ function renderTimers() {
                      </div>
                 </div>
                 <div class="timer-display" style="color: ${timer.currentMode === 'work' ? 'var(--accent-primary)' : timer.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-primary)'}">${formatTime(timer.currentSessionTime)}</div>
-                <div class="mode-indicator" style="${timer.isElite ? 'color: #f1c40f; font-weight: bold; text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);' : ''}">
-                    ${timer.isElite ? '⭐ ' : ''}${timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? timer.outcome : 'Ready'))}${timer.isElite ? ' ⭐' : ''}
+                <div class="mode-indicator">
+                    ${timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? timer.outcome : 'Ready'))}
                 </div>
                 <div class="timer-controls">
                     <button class="btn" style="background:var(--accent-primary);" onclick="setStopwatchMode(${timer.id}, 'work')"><i class="fa-solid fa-fire"></i> Stroke</button>
@@ -262,7 +258,7 @@ function renderTimers() {
             `;
         } else {
             div.className = `timer-card`;
-            div.innerHTML = `<div class="timer-display">${formatTime(timer.remaining)}</div>`;
+            div.innerHTML = `<div class="timer-header"><input type="text" class="timer-name" value="${timer.name}" onchange="updateTimerProp(${timer.id}, 'name', this.value)"><button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button></div><div class="timer-display">${formatTime(timer.remaining)}</div>`;
         }
         container.appendChild(div);
     });
