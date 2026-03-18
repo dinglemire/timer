@@ -73,8 +73,6 @@ setInterval(() => {
                 if (timer.type === 'stopwatch') {
                     timer.currentSessionTime++;
                     timer.totalTime++;
-                    
-                    // Break Warning Audio
                     if (timer.currentMode === 'rest' && timer.breakWarning > 0) {
                         if (timer.currentSessionTime === parseInt(timer.breakWarning)) {
                             playSound('warning');
@@ -162,29 +160,25 @@ function exportStopwatch(id) {
     let anyLongBreaks = false;
 
     timer.splits.forEach(s => {
-        if (s.mode === 'work') {
-            totalStrokeSec += s.duration;
-        } else {
+        if (s.mode === 'work') totalStrokeSec += s.duration;
+        else {
             totalRestSec += s.duration;
             breakCount++;
-            if (s.duration > 50) anyLongBreaks = true; // Elite limit check
+            if (s.duration > 50) anyLongBreaks = true;
         }
     });
 
-    // Check elite criteria
     const isElite = (timer.totalTime >= 1200 && breakCount <= 5 && !anyLongBreaks);
 
     let text = `=== STROKE / REST TRAINING LOG ===\n`;
     text += `Date: ${dateStr} (${weekday})\n`;
     text += `Outcome: ${timer.outcome === 'none' ? 'In Progress' : timer.outcome}\n`;
     if (isElite) text += `RANK: ⭐ ELITE PERFORMANCE ⭐\n`;
-    
     text += `Total Session Time: ${formatTime(timer.totalTime)}\n`;
     text += `Total Stroke Duration: ${formatTime(totalStrokeSec)}\n`;
     text += `Total Rest Duration: ${formatTime(totalRestSec)}\n`;
     text += `Total Breaks Taken: ${breakCount}\n`;
     text += `------------------------------------------\n\n`;
-    
     timer.splits.forEach(s => {
         text += `Phase ${s.set} [${s.mode === 'work' ? 'STROKE' : 'BREAK'}] - Duration: ${formatTime(s.duration)}\n`;
     });
@@ -224,17 +218,23 @@ function renderTimers() {
         if (timer.type === 'stopwatch') {
             const currentBreaks = timer.splits.filter(s => s.mode === 'rest').length + (timer.currentMode === 'rest' ? 1 : 0);
             div.className = `timer-card ${timer.isRunning && timer.currentMode === 'work' ? 'running' : (timer.isRunning && timer.currentMode === 'rest' ? 'resting' : '')}`;
+            
+            // UI Color logic for instant glance
+            const modeColor = timer.currentMode === 'work' ? 'var(--accent-primary)' : (timer.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-secondary)');
+            const modeText = timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? timer.outcome : 'READY'));
+
             div.innerHTML = `
                 <div class="timer-header">
                     <input type="text" class="timer-name" value="${timer.name}" onchange="updateTimerProp(${timer.id}, 'name', this.value)">
-                    <div style="font-weight:bold; color: var(--text-secondary); font-size: 1.1rem;">BREAKS USED: ${currentBreaks}</div>
+                    <!-- BRIGHT RED BREAK COUNTER -->
+                    <div style="font-weight:bold; color: var(--accent-paused); font-size: 1.3rem; letter-spacing: 1px;">BREAKS USED: ${currentBreaks}</div>
                     <button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
                 <div style="display:flex; justify-content:center; align-items:center; gap:15px; margin-top:5px;">
-                     <div style="color: var(--text-secondary); font-size: 0.9rem;" class="total-time-display">Session: ${formatTime(timer.totalTime)}</div>
-                     <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                     <div style="color: var(--text-secondary); font-size: 1rem;" class="total-time-display">Session: ${formatTime(timer.totalTime)}</div>
+                     <div style="font-size: 0.9rem; color: var(--text-secondary);">
                         Warn: 
-                        <select onchange="updateTimerProp(${timer.id}, 'breakWarning', this.value)" style="font-size:0.8rem; padding:2px;">
+                        <select onchange="updateTimerProp(${timer.id}, 'breakWarning', this.value)" style="font-size:0.9rem; padding:2px;">
                             <option value="0" ${timer.breakWarning == 0 ? 'selected' : ''}>Off</option>
                             <option value="40" ${timer.breakWarning == 40 ? 'selected' : ''}>40s</option>
                             <option value="60" ${timer.breakWarning == 60 ? 'selected' : ''}>60s</option>
@@ -242,19 +242,20 @@ function renderTimers() {
                         </select>
                      </div>
                 </div>
-                <div class="timer-display" style="color: ${timer.currentMode === 'work' ? 'var(--accent-primary)' : timer.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-primary)'}">${formatTime(timer.currentSessionTime)}</div>
-                <div class="mode-indicator">
-                    ${timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? timer.outcome : 'Ready'))}
+                <div class="timer-display" style="color: ${modeColor}">${formatTime(timer.currentSessionTime)}</div>
+                <!-- LARGE BOLD PHASE INDICATOR -->
+                <div class="mode-indicator" style="color: ${modeColor}; font-size: 1.4rem; font-weight: 800; text-transform: uppercase;">
+                    ${modeText}
                 </div>
                 <div class="timer-controls">
                     <button class="btn" style="background:var(--accent-primary);" onclick="setStopwatchMode(${timer.id}, 'work')"><i class="fa-solid fa-fire"></i> Stroke</button>
                     <button class="btn" style="background:var(--accent-running);" onclick="setStopwatchMode(${timer.id}, 'rest')"><i class="fa-solid fa-bed"></i> Break</button>
-                    <button class="btn" style="background:#6c5ce7;" onclick="setStopwatchMode(${timer.id}, 'stopped_release')" title="Enter: Released"><i class="fa-solid fa-water"></i> Release</button>
-                    <button class="btn" style="background:#636e72;" onclick="setStopwatchMode(${timer.id}, 'stopped_no_release')" title="Esc: No Release"><i class="fa-solid fa-xmark"></i> No Release</button>
+                    <button class="btn" style="background:#6c5ce7;" onclick="setStopwatchMode(${timer.id}, 'stopped_release')"><i class="fa-solid fa-water"></i> Release</button>
+                    <button class="btn" style="background:#636e72;" onclick="setStopwatchMode(${timer.id}, 'stopped_no_release')"><i class="fa-solid fa-xmark"></i> No Release</button>
                     <button class="btn btn-reset" onclick="exportStopwatch(${timer.id})"><i class="fa-solid fa-file-export"></i></button>
                     <button class="btn btn-reset" onclick="resetStopwatch(${timer.id})"><i class="fa-solid fa-rotate-right"></i></button>
                 </div>
-                <div class="splits-list">${timer.splits.map(s => `<div class="split-item"><span class="split-${s.mode}">${s.mode === 'work' ? 'Stroke' : 'Break #' + s.set}</span><span>${formatTime(s.duration)}</span></div>`).reverse().join('')}</div>
+                <div class="splits-list">${timer.splits.map(s => `<div class="split-item"><span class="split-${s.mode}" style="font-weight:bold;">${s.mode === 'work' ? 'Stroke' : 'Break #' + s.set}</span><span>${formatTime(s.duration)}</span></div>`).reverse().join('')}</div>
             `;
         } else {
             div.className = `timer-card`;
