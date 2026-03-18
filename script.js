@@ -279,28 +279,31 @@ function exportStopwatch(id) {
 
     const now = new Date();
     const weekday = now.toLocaleDateString('en-GB', { weekday: 'long' });
-    const dateStr = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
+    const dateStr = now.toLocaleDateString('en-GB'); 
+    // Add time to filename (e.g., 14:30) to prevent overwriting files
+    const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
 
-    // Calculate totals from splits
     let totalStrokeSec = 0;
     let totalRestSec = 0;
-    let strokeCount = 0;
+    let breakCount = 0;
 
+    // Calculate totals
     timer.splits.forEach(s => {
         if (s.mode === 'work') {
             totalStrokeSec += s.duration;
-            strokeCount++;
         } else if (s.mode === 'rest') {
             totalRestSec += s.duration;
+            breakCount++; // Only increment for actual breaks taken
         }
     });
 
     // Add current session if still running
     if (timer.currentMode === 'work') {
         totalStrokeSec += timer.currentSessionTime;
-        strokeCount++;
     } else if (timer.currentMode === 'rest') {
         totalRestSec += timer.currentSessionTime;
+        // Optional: decide if you want to count a break that hasn't finished yet
+        // breakCount++; 
     }
 
     let text = `=== STROKE / REST TRAINING LOG ===\n`;
@@ -308,24 +311,25 @@ function exportStopwatch(id) {
     text += `Total Session Time: ${formatTime(timer.totalTime)}\n`;
     text += `Total Stroke Duration: ${formatTime(totalStrokeSec)}\n`;
     text += `Total Rest Duration: ${formatTime(totalRestSec)}\n`;
-    text += `Total Sets Completed: ${strokeCount}\n`;
+    text += `Total Breaks Taken: ${breakCount}\n`; // Changed phrasing
     text += `------------------------------------------\n\n`;
     
     timer.splits.forEach(s => {
-        const modeLabel = s.mode === 'work' ? 'STROKE' : 'REST';
-        text += `Set ${s.set} [${modeLabel}] - Duration: ${formatTime(s.duration)}\n`;
+        const modeLabel = s.mode === 'work' ? 'STROKE' : 'BREAK'; // Changed REST to BREAK
+        text += `Phase ${s.set} [${modeLabel}] - Duration: ${formatTime(s.duration)}\n`;
     });
     
     if (timer.currentMode === 'work' || timer.currentMode === 'rest') {
-        const currentModeLabel = timer.currentMode === 'work' ? 'STROKE' : 'REST';
-        text += `Set ${timer.currentSet} [${currentModeLabel}] (Current) - Duration: ${formatTime(timer.currentSessionTime)}\n`;
+        const currentModeLabel = timer.currentMode === 'work' ? 'STROKE' : 'BREAK';
+        text += `Phase ${timer.currentSet} [${currentModeLabel}] (Current) - Duration: ${formatTime(timer.currentSessionTime)}\n`;
     }
 
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Training_Log_${dateStr.replace(/\//g, '-')}.txt`;
+    // Filename now looks like: Training_Log_18-03-2026_1430.txt
+    a.download = `Training_Log_${dateStr.replace(/\//g, '-')}_${timeStr}.txt`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -421,8 +425,8 @@ function renderTimers() {
                     ${formatTime(timer.currentSessionTime)}
                 </div>
                 <div class="mode-indicator" style="color: ${timer.currentMode === 'work' ? 'var(--accent-primary)' : timer.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-secondary)'}">
-                    ${timer.currentMode !== 'none' && timer.currentMode !== 'stopped' ? (timer.currentMode === 'work' ? 'Stroke' : 'Rest') + ' - Set ' + timer.currentSet : (timer.currentMode === 'stopped' ? 'Stopped' : 'Ready')}
-                </div>
+    ${timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode === 'stopped' ? 'Stopped' : 'Ready'))}
+</div>
                 <div class="timer-controls">
                     <button class="btn" style="background:var(--accent-primary);" onclick="setStopwatchMode(${timer.id}, 'work')">
                         <i class="fa-solid fa-fire"></i> Stroke
@@ -441,14 +445,14 @@ function renderTimers() {
                     </button>
                 </div>
                 <div class="splits-list">
-                    ${timer.splits.map(s => `
-                        <div class="split-item">
-                            <span class="split-${s.mode}">Set ${s.set} - ${s.mode === 'work' ? 'STROKE' : 'REST'}</span>
-                            <span>${formatTime(s.duration)}</span>
-                        </div>
-                    `).reverse().join('')} 
-                    ${timer.splits.length === 0 ? '<div style="text-align:center; opacity:0.5; margin-top:10px;">No entries yet</div>' : ''}
-                </div>
+    ${timer.splits.map(s => `
+        <div class="split-item">
+            <span class="split-${s.mode}">${s.mode === 'work' ? 'Stroke' : 'Break #' + s.set}</span>
+            <span>${formatTime(s.duration)}</span>
+        </div>
+    `).reverse().join('')} 
+    ${timer.splits.length === 0 ? '<div style="text-align:center; opacity:0.5; margin-top:10px;">No entries yet</div>' : ''}
+</div>
             `;
         }
 
