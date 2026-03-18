@@ -41,6 +41,24 @@ body.theme-light {
     --input-bg: #f1f2f6;
     --border-color: #dcdde1;
 }
+body.theme-amber {
+    --bg-color: #0f0b08;         /* Deepest charcoal brown */
+    --card-bg: #1a140f;          /* Dark chocolate / coffee */
+    --text-primary: #ff9f43;     /* Warm Amber */
+    --text-secondary: #ad7d52;   /* Muted Gold */
+    --accent-primary: #ee5253;   /* Stroke: Red-Orange */
+    --accent-running: #feca57;   /* Break: Warm Yellow */
+    --accent-paused: #ff4757;    /* Breaks Used: Bright Red */
+    --tab-bg: #1a140f;
+    --tab-active: #2d2116;
+    --input-bg: #2d2116;
+    --border-color: #3d2d1e;
+}
+
+/* Optional: Add a subtle orange glow to the cards in this theme */
+body.theme-amber .timer-card {
+    box-shadow: 0 4px 15px rgba(255, 159, 67, 0.05);
+}
 
 /* --- LAYOUT --- */
 body {
