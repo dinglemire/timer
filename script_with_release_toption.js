@@ -1,7 +1,7 @@
 /* --- STATE MANAGEMENT --- */
 let session = {
     isRunning: false,
-    currentMode: 'none', // 'work', 'rest', 'stopped'
+    currentMode: 'none', // 'work', 'rest', 'stopped_release', 'stopped_no_release'
     currentSessionTime: 0,
     totalTime: 0,
     currentSet: 1,
@@ -60,15 +60,16 @@ setInterval(() => {
 function setMode(newMode) {
     if (session.currentMode === newMode && session.isRunning) return;
 
-    if (session.currentMode !== 'none' && session.currentMode !== 'stopped' && session.currentSessionTime > 0) {
+    // Log split if we were active
+    if (session.currentMode !== 'none' && !session.currentMode.includes('stopped') && session.currentSessionTime > 0) {
         session.splits.push({ mode: session.currentMode, set: session.currentSet, duration: session.currentSessionTime });
         if (session.currentMode === 'rest' && newMode === 'work') session.currentSet++;
     }
 
-    if (newMode === 'stopped') {
+    if (newMode.includes('stopped')) {
         playSound('finish');
         session.isRunning = false;
-        session.currentMode = 'stopped';
+        session.currentMode = newMode;
     } else {
         playSound('beep');
         session.currentMode = newMode;
@@ -90,8 +91,9 @@ function exportData() {
     });
 
     const isElite = (session.totalTime >= 1200 && breaks <= 5 && !longBreak);
+    const outcome = session.currentMode === 'stopped_release' ? 'RELEASED' : 'NO RELEASE';
 
-    let t = `=== STROKE / REST TRAINING LOG ===\nDate: ${dateStr}\n`;
+    let t = `=== STROKE / REST TRAINING LOG ===\nDate: ${dateStr}\nOutcome: ${outcome}\n`;
     if (isElite) t += `RANK: ⭐ ELITE PERFORMANCE ⭐\n`;
     t += `Total Session: ${formatTime(session.totalTime)}\nStroke: ${formatTime(strokeSec)}\nRest: ${formatTime(restSec)}\nBreaks: ${breaks}\n------------------\n`;
     session.splits.forEach(s => t += `Phase ${s.set} [${s.mode === 'work' ? 'STROKE' : 'BREAK'}] - ${formatTime(s.duration)}\n`);
@@ -107,7 +109,8 @@ function render() {
     const container = document.getElementById('main-timer-container');
     const breaksUsed = session.splits.filter(s => s.mode === 'rest').length + (session.currentMode === 'rest' ? 1 : 0);
     const modeColor = session.currentMode === 'work' ? 'var(--accent-primary)' : (session.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-secondary)');
-    const displayMode = session.currentMode === 'work' ? 'STROKE' : (session.currentMode === 'rest' ? 'BREAK #' + session.currentSet : (session.currentMode === 'stopped' ? 'FINISHED' : 'READY'));
+    const outcomeText = session.currentMode === 'stopped_release' ? 'RELEASED' : 'NO RELEASE';
+    const displayMode = session.currentMode === 'work' ? 'STROKE' : (session.currentMode === 'rest' ? 'BREAK #' + session.currentSet : (session.currentMode.includes('stopped') ? outcomeText : 'READY'));
 
     container.innerHTML = `
         <div class="timer-card ${session.isRunning && session.currentMode === 'work' ? 'running' : (session.isRunning && session.currentMode === 'rest' ? 'resting' : '')}">
@@ -126,12 +129,13 @@ function render() {
             
             <div style="color: var(--text-secondary); margin-top:10px;">Total Session: <span id="total-clock">${formatTime(session.totalTime)}</span></div>
             <div class="timer-display" id="main-clock" style="color: ${modeColor}">${formatTime(session.currentSessionTime)}</div>
-            <div class="mode-indicator" style="color: ${modeColor}; font-weight:800; font-size: 1.4rem;">${displayMode}</div>
+            <div class="mode-indicator" style="color: ${modeColor}; font-weight:800;">${displayMode}</div>
 
             <div class="timer-controls">
                 <button class="btn" style="background:var(--accent-primary);" onclick="setMode('work')"><i class="fa-solid fa-fire"></i> Stroke</button>
                 <button class="btn" style="background:var(--accent-running);" onclick="setMode('rest')"><i class="fa-solid fa-bed"></i> Break</button>
-                <button class="btn" style="background:#6c5ce7;" onclick="setMode('stopped')"><i class="fa-solid fa-check"></i> Finish Session</button>
+                <button class="btn" style="background:#6c5ce7;" onclick="setMode('stopped_release')">💦 Release</button>
+                <button class="btn" style="background:#636e72;" onclick="setMode('stopped_no_release')">✖ No Release</button>
                 <button class="btn btn-reset" onclick="exportData()"><i class="fa-solid fa-file-export"></i></button>
                 <button class="btn btn-reset" onclick="resetAll()"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
@@ -144,10 +148,8 @@ function render() {
 }
 
 function updateDisplay() {
-    const main = document.getElementById('main-clock');
-    const total = document.getElementById('total-clock');
-    if(main) main.textContent = formatTime(session.currentSessionTime);
-    if(total) total.textContent = formatTime(session.totalTime);
+    document.getElementById('main-clock').textContent = formatTime(session.currentSessionTime);
+    document.getElementById('total-clock').textContent = formatTime(session.totalTime);
 }
 
 function updateWarn(val) { session.breakWarning = val; save(); }
@@ -161,15 +163,9 @@ function resetAll() { if(confirm("Reset everything?")) { localStorage.removeItem
 
 window.addEventListener('keydown', (e) => {
     if (Date.now() - lastActionTime < INPUT_COOLDOWN) return;
-    if (e.code === 'Space') { 
-        e.preventDefault(); 
-        lastActionTime = Date.now(); 
-        setMode(session.currentMode === 'work' ? 'rest' : 'work'); 
-    }
-    else if (e.code === 'Enter' || e.code === 'Escape') { 
-        lastActionTime = Date.now(); 
-        setMode('stopped'); 
-    }
+    if (e.code === 'Space') { e.preventDefault(); lastActionTime = Date.now(); setMode(session.currentMode === 'work' ? 'rest' : 'work'); }
+    else if (e.code === 'Enter') { lastActionTime = Date.now(); setMode('stopped_release'); }
+    else if (e.code === 'Escape') { lastActionTime = Date.now(); setMode('stopped_no_release'); }
 });
 
 window.addEventListener('mousedown', (e) => {
