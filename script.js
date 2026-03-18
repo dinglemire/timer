@@ -28,12 +28,10 @@ function playSound(type) {
         osc.start(now); osc.stop(now + 0.1);
     }
     else if (type === 'warning') {
-        // Double beep for the break reminder
         osc.type = 'sine';
         osc.frequency.setValueAtTime(800, now);
         gainNode.gain.setValueAtTime(0.1, now);
         osc.start(now); osc.stop(now + 0.15);
-        
         const osc2 = audioCtx.createOscillator();
         const gain2 = audioCtx.createGain();
         osc2.connect(gain2); gain2.connect(audioCtx.destination);
@@ -48,6 +46,19 @@ function playSound(type) {
         osc.frequency.linearRampToValueAtTime(900, now + 0.4);
         gainNode.gain.setValueAtTime(0.1, now);
         osc.start(); osc.stop(now + 0.4);
+    }
+    else if (type === 'finish_elite') {
+        // More triumphant sound for 20min+ sessions
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        gainNode.gain.setValueAtTime(0.1, now);
+        osc.start(now); osc.stop(now + 0.2);
+        const osc2 = audioCtx.createOscillator();
+        const g2 = audioCtx.createGain();
+        osc2.connect(g2); g2.connect(audioCtx.destination);
+        osc2.frequency.setValueAtTime(659.25, now + 0.2); // E5
+        g2.gain.setValueAtTime(0.1, now + 0.2);
+        osc2.start(now + 0.2); osc2.stop(now + 0.5);
     }
 }
 
@@ -75,8 +86,6 @@ setInterval(() => {
                 if (timer.type === 'stopwatch') {
                     timer.currentSessionTime++;
                     timer.totalTime++;
-                    
-                    // Audio Break Warning Logic
                     if (timer.currentMode === 'rest' && timer.breakWarning > 0) {
                         if (timer.currentSessionTime === parseInt(timer.breakWarning)) {
                             playSound('warning');
@@ -110,7 +119,7 @@ function createTimerObject(id, duration, countNumber) {
 }
 
 function createStopwatchObject(id, countNumber) {
-    return { id, type: 'stopwatch', name: `Training Log ${countNumber}`, isRunning: false, currentMode: 'none', currentSessionTime: 0, totalTime: 0, currentSet: 1, splits: [], outcome: 'none', breakWarning: 0 };
+    return { id, type: 'stopwatch', name: `Training Log ${countNumber}`, isRunning: false, currentMode: 'none', currentSessionTime: 0, totalTime: 0, currentSet: 1, splits: [], outcome: 'none', breakWarning: 0, isElite: false };
 }
 
 function deleteTimer(timerId) {
@@ -129,22 +138,22 @@ function setStopwatchMode(id, newMode) {
         if (timer.currentMode === 'rest' && newMode === 'work') timer.currentSet++;
     }
 
-    if (newMode === 'stopped_release') {
-        playSound('finish_standard');
+    if (newMode.includes('stopped')) {
+        // Check for "Elite" Status (20+ mins AND <= 5 breaks)
+        const breakCount = timer.splits.filter(s => s.mode === 'rest').length + (timer.currentMode === 'rest' ? 1 : 0);
+        timer.isElite = (timer.totalTime >= 1200 && breakCount <= 5);
+        
+        playSound(timer.isElite ? 'finish_elite' : 'finish_standard');
         timer.isRunning = false;
-        timer.currentMode = 'stopped_release';
-        timer.outcome = 'RELEASED';
-    } else if (newMode === 'stopped_no_release') {
-        playSound('finish_standard');
-        timer.isRunning = false;
-        timer.currentMode = 'stopped_no_release';
-        timer.outcome = 'NO RELEASE';
+        timer.currentMode = newMode;
+        timer.outcome = newMode === 'stopped_release' ? 'RELEASED' : 'NO RELEASE';
     } else {
         playSound('beep2');
         timer.currentMode = newMode;
         timer.currentSessionTime = 0;
         timer.isRunning = true;
         timer.outcome = 'none';
+        timer.isElite = false;
     }
     saveData(); renderTimers();
 }
@@ -153,7 +162,7 @@ function resetStopwatch(id) {
     if (!confirm("Reset Training stats?")) return;
     const tab = appData.tabs.find(t => t.id === appData.activeTabId);
     const timer = tab.timers.find(t => t.id === id);
-    timer.isRunning = false; timer.currentMode = 'none'; timer.currentSessionTime = 0; timer.totalTime = 0; timer.currentSet = 1; timer.splits = []; timer.outcome = 'none';
+    timer.isRunning = false; timer.currentMode = 'none'; timer.currentSessionTime = 0; timer.totalTime = 0; timer.currentSet = 1; timer.splits = []; timer.outcome = 'none'; timer.isElite = false;
     saveData(); renderTimers();
 }
 
@@ -172,6 +181,7 @@ function exportStopwatch(id) {
     });
 
     let text = `=== STROKE / REST TRAINING LOG ===\n`;
+    if (timer.isElite) text += `RANK: ⭐ ELITE PERFORMANCE ⭐\n`;
     text += `Date: ${dateStr} (${weekday})\n`;
     text += `Outcome: ${timer.outcome === 'none' ? 'In Progress' : timer.outcome}\n`;
     text += `Total Session Time: ${formatTime(timer.totalTime)}\n`;
@@ -221,15 +231,15 @@ function renderTimers() {
             div.innerHTML = `
                 <div class="timer-header">
                     <input type="text" class="timer-name" value="${timer.name}" onchange="updateTimerProp(${timer.id}, 'name', this.value)">
-                    <div style="font-weight:bold; color: var(--accent-paused); font-size: 1.1rem;">BREAKS USED: ${currentBreaks}</div>
+                    <div style="font-weight:bold; color: ${currentBreaks > 5 ? 'var(--accent-paused)' : 'var(--text-secondary)'}; font-size: 1.1rem;">BREAKS USED: ${currentBreaks}</div>
                     <button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
-                <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:5px;">
-                     <div style="color: var(--text-secondary); font-size: 0.9rem;" class="total-time-display">Total Session Time: ${formatTime(timer.totalTime)}</div>
+                <div style="display:flex; justify-content:center; align-items:center; gap:15px; margin-top:5px;">
+                     <div style="color: var(--text-secondary); font-size: 0.9rem;" class="total-time-display">Session: ${formatTime(timer.totalTime)}</div>
                      <div style="font-size: 0.8rem; color: var(--text-secondary);">
-                        Break Warning: 
+                        Warn: 
                         <select onchange="updateTimerProp(${timer.id}, 'breakWarning', this.value)" style="font-size:0.8rem; padding:2px;">
-                            <option value="0" ${timer.breakWarning == 0 ? 'selected' : ''}>None</option>
+                            <option value="0" ${timer.breakWarning == 0 ? 'selected' : ''}>Off</option>
                             <option value="40" ${timer.breakWarning == 40 ? 'selected' : ''}>40s</option>
                             <option value="60" ${timer.breakWarning == 60 ? 'selected' : ''}>60s</option>
                             <option value="90" ${timer.breakWarning == 90 ? 'selected' : ''}>90s</option>
@@ -237,8 +247,8 @@ function renderTimers() {
                      </div>
                 </div>
                 <div class="timer-display" style="color: ${timer.currentMode === 'work' ? 'var(--accent-primary)' : timer.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-primary)'}">${formatTime(timer.currentSessionTime)}</div>
-                <div class="mode-indicator">
-                    ${timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? timer.outcome : 'Ready'))}
+                <div class="mode-indicator" style="${timer.isElite ? 'color: #f1c40f; font-weight: bold; text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);' : ''}">
+                    ${timer.isElite ? '⭐ ' : ''}${timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? timer.outcome : 'Ready'))}${timer.isElite ? ' ⭐' : ''}
                 </div>
                 <div class="timer-controls">
                     <button class="btn" style="background:var(--accent-primary);" onclick="setStopwatchMode(${timer.id}, 'work')"><i class="fa-solid fa-fire"></i> Stroke</button>
@@ -251,12 +261,8 @@ function renderTimers() {
                 <div class="splits-list">${timer.splits.map(s => `<div class="split-item"><span class="split-${s.mode}">${s.mode === 'work' ? 'Stroke' : 'Break #' + s.set}</span><span>${formatTime(s.duration)}</span></div>`).reverse().join('')}</div>
             `;
         } else {
-            // Countdown Timer UI
             div.className = `timer-card`;
-            div.innerHTML = `
-                <div class="timer-header"><span>${timer.name}</span><button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button></div>
-                <div class="timer-display">${formatTime(timer.remaining)}</div>
-            `;
+            div.innerHTML = `<div class="timer-display">${formatTime(timer.remaining)}</div>`;
         }
         container.appendChild(div);
     });
@@ -268,7 +274,7 @@ function updateTimerDOM(timer) {
     const display = card.querySelector('.timer-display');
     if (display) display.textContent = formatTime(timer.currentSessionTime || timer.remaining);
     const totalDisplay = card.querySelector('.total-time-display');
-    if (totalDisplay) totalDisplay.textContent = `Total Session Time: ${formatTime(timer.totalTime)}`;
+    if (totalDisplay) totalDisplay.textContent = `Session: ${formatTime(timer.totalTime)}`;
 }
 
 function formatTime(s) { 
@@ -282,7 +288,7 @@ function applyLayout(l) { appData.layout = l; saveData(); }
 function updateTimerProp(id, prop, val) { 
     const tab = appData.tabs.find(t => t.id === appData.activeTabId);
     const timer = tab.timers.find(t => t.id === id);
-    if(timer) timer[prop] = val; saveData();
+    if(timer) timer[prop] = val; saveData(); renderTimers();
 }
 
 // --- INPUT HANDLERS ---
