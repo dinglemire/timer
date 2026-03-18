@@ -40,7 +40,7 @@ function playSound(type) {
         gain2.gain.setValueAtTime(0.1, now + 0.2);
         osc2.start(now + 0.2); osc2.stop(now + 0.35);
     }
-    else if (type === 'finish') {
+    else if (type === 'finish_standard') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
         osc.frequency.linearRampToValueAtTime(900, now + 0.4);
@@ -106,7 +106,7 @@ function createTimerObject(id, duration, countNumber) {
 }
 
 function createStopwatchObject(id, countNumber) {
-    return { id, type: 'stopwatch', name: `Training Log ${countNumber}`, isRunning: false, currentMode: 'none', currentSessionTime: 0, totalTime: 0, currentSet: 1, splits: [], breakWarning: 0 };
+    return { id, type: 'stopwatch', name: `Training Log ${countNumber}`, isRunning: false, currentMode: 'none', currentSessionTime: 0, totalTime: 0, currentSet: 1, splits: [], outcome: 'none', breakWarning: 0 };
 }
 
 function deleteTimer(timerId) {
@@ -120,20 +120,22 @@ function setStopwatchMode(id, newMode) {
     const timer = tab.timers.find(t => t.id === id);
     if (timer.currentMode === newMode && timer.isRunning) return;
 
-    if (timer.currentMode !== 'none' && timer.currentMode !== 'stopped' && timer.currentSessionTime > 0) {
+    if (timer.currentMode !== 'none' && !timer.currentMode.includes('stopped') && timer.currentSessionTime > 0) {
         timer.splits.push({ mode: timer.currentMode, set: timer.currentSet, duration: timer.currentSessionTime });
         if (timer.currentMode === 'rest' && newMode === 'work') timer.currentSet++;
     }
 
-    if (newMode === 'stopped') {
-        playSound('finish');
+    if (newMode.includes('stopped')) {
+        playSound('finish_standard');
         timer.isRunning = false;
-        timer.currentMode = 'stopped';
+        timer.currentMode = newMode;
+        timer.outcome = newMode === 'stopped_release' ? 'RELEASED' : 'NO RELEASE';
     } else {
         playSound('beep2');
         timer.currentMode = newMode;
         timer.currentSessionTime = 0;
         timer.isRunning = true;
+        timer.outcome = 'none';
     }
     saveData(); renderTimers();
 }
@@ -142,7 +144,7 @@ function resetStopwatch(id) {
     if (!confirm("Reset Training stats?")) return;
     const tab = appData.tabs.find(t => t.id === appData.activeTabId);
     const timer = tab.timers.find(t => t.id === id);
-    timer.isRunning = false; timer.currentMode = 'none'; timer.currentSessionTime = 0; timer.totalTime = 0; timer.currentSet = 1; timer.splits = [];
+    timer.isRunning = false; timer.currentMode = 'none'; timer.currentSessionTime = 0; timer.totalTime = 0; timer.currentSet = 1; timer.splits = []; timer.outcome = 'none';
     saveData(); renderTimers();
 }
 
@@ -170,6 +172,7 @@ function exportStopwatch(id) {
 
     let text = `=== STROKE / REST TRAINING LOG ===\n`;
     text += `Date: ${dateStr} (${weekday})\n`;
+    text += `Outcome: ${timer.outcome === 'none' ? 'In Progress' : timer.outcome}\n`;
     if (isElite) text += `RANK: ⭐ ELITE PERFORMANCE ⭐\n`;
     text += `Total Session Time: ${formatTime(timer.totalTime)}\n`;
     text += `Total Stroke Duration: ${formatTime(totalStrokeSec)}\n`;
@@ -216,13 +219,15 @@ function renderTimers() {
             const currentBreaks = timer.splits.filter(s => s.mode === 'rest').length + (timer.currentMode === 'rest' ? 1 : 0);
             div.className = `timer-card ${timer.isRunning && timer.currentMode === 'work' ? 'running' : (timer.isRunning && timer.currentMode === 'rest' ? 'resting' : '')}`;
             
+            // UI Color logic for instant glance
             const modeColor = timer.currentMode === 'work' ? 'var(--accent-primary)' : (timer.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-secondary)');
-            const modeText = timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode === 'stopped' ? 'FINISHED' : 'READY'));
+            const modeText = timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? timer.outcome : 'READY'));
 
             div.innerHTML = `
                 <div class="timer-header">
                     <input type="text" class="timer-name" value="${timer.name}" onchange="updateTimerProp(${timer.id}, 'name', this.value)">
-                    <div style="font-weight:bold; color: var(--accent-paused); font-size: 1.3rem;">BREAKS USED: ${currentBreaks}</div>
+                    <!-- BRIGHT RED BREAK COUNTER -->
+                    <div style="font-weight:bold; color: var(--accent-paused); font-size: 1.3rem; letter-spacing: 1px;">BREAKS USED: ${currentBreaks}</div>
                     <button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
                 <div style="display:flex; justify-content:center; align-items:center; gap:15px; margin-top:5px;">
@@ -238,13 +243,15 @@ function renderTimers() {
                      </div>
                 </div>
                 <div class="timer-display" style="color: ${modeColor}">${formatTime(timer.currentSessionTime)}</div>
+                <!-- LARGE BOLD PHASE INDICATOR -->
                 <div class="mode-indicator" style="color: ${modeColor}; font-size: 1.4rem; font-weight: 800; text-transform: uppercase;">
                     ${modeText}
                 </div>
                 <div class="timer-controls">
                     <button class="btn" style="background:var(--accent-primary);" onclick="setStopwatchMode(${timer.id}, 'work')"><i class="fa-solid fa-fire"></i> Stroke</button>
                     <button class="btn" style="background:var(--accent-running);" onclick="setStopwatchMode(${timer.id}, 'rest')"><i class="fa-solid fa-bed"></i> Break</button>
-                    <button class="btn" style="background:#6c5ce7;" onclick="setStopwatchMode(${timer.id}, 'stopped')"><i class="fa-solid fa-check"></i> Finish Session</button>
+                    <button class="btn" style="background:#6c5ce7;" onclick="setStopwatchMode(${timer.id}, 'stopped_release')"><i class="fa-solid fa-water"></i> Release</button>
+                    <button class="btn" style="background:#636e72;" onclick="setStopwatchMode(${timer.id}, 'stopped_no_release')"><i class="fa-solid fa-xmark"></i> No Release</button>
                     <button class="btn btn-reset" onclick="exportStopwatch(${timer.id})"><i class="fa-solid fa-file-export"></i></button>
                     <button class="btn btn-reset" onclick="resetStopwatch(${timer.id})"><i class="fa-solid fa-rotate-right"></i></button>
                 </div>
@@ -293,8 +300,10 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
         e.preventDefault(); lastActionTime = now;
         setStopwatchMode(sw.id, sw.currentMode === 'work' ? 'rest' : 'work');
-    } else if (e.code === 'Enter' || e.code === 'Escape') {
-        lastActionTime = now; setStopwatchMode(sw.id, 'stopped');
+    } else if (e.code === 'Enter') {
+        lastActionTime = now; setStopwatchMode(sw.id, 'stopped_release');
+    } else if (e.code === 'Escape') {
+        lastActionTime = now; setStopwatchMode(sw.id, 'stopped_no_release');
     }
 });
 
