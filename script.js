@@ -15,6 +15,7 @@ const INPUT_COOLDOWN = 1000;
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 
+// --- SOUND ENGINE ---
 function playSound(type) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
@@ -38,6 +39,7 @@ function playSound(type) {
     }
 }
 
+// --- INITIALIZATION ---
 function init() {
     const saved = localStorage.getItem('trainingSessionData');
     if (saved) session = JSON.parse(saved);
@@ -45,6 +47,7 @@ function init() {
     render();
 }
 
+// --- GLOBAL TICKER ---
 setInterval(() => {
     if (session.isRunning) {
         session.currentSessionTime++;
@@ -57,6 +60,7 @@ setInterval(() => {
     }
 }, 1000);
 
+// --- CORE LOGIC ---
 function setMode(newMode) {
     if (session.currentMode === newMode && session.isRunning) return;
 
@@ -80,29 +84,44 @@ function setMode(newMode) {
 
 function exportData() {
     const now = new Date();
+    const weekday = now.toLocaleDateString('en-GB', { weekday: 'long' });
     const dateStr = now.toLocaleDateString('en-GB');
     const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
     
     let strokeSec = 0, restSec = 0, breaks = 0, longBreak = false;
     session.splits.forEach(s => {
         if (s.mode === 'work') strokeSec += s.duration;
-        else { restSec += s.duration; breaks++; if(s.duration > 50) longBreak = true; }
+        else { 
+            restSec += s.duration; 
+            breaks++; 
+            if(s.duration > 50) longBreak = true; 
+        }
     });
 
     const isElite = (session.totalTime >= 1200 && breaks <= 5 && !longBreak);
 
-    let t = `=== STROKE / REST TRAINING LOG ===\nDate: ${dateStr}\n`;
+    let t = `=== STROKE / BREAK TRAINING LOG ===\n`;
+    t += `Date: ${dateStr} (${weekday})\n`;
     if (isElite) t += `RANK: ⭐ ELITE PERFORMANCE ⭐\n`;
-    t += `Total Session: ${formatTime(session.totalTime)}\nStroke: ${formatTime(strokeSec)}\nRest: ${formatTime(restSec)}\nBreaks: ${breaks}\n------------------\n`;
-    session.splits.forEach(s => t += `Phase ${s.set} [${s.mode === 'work' ? 'STROKE' : 'BREAK'}] - ${formatTime(s.duration)}\n`);
+    t += `Total Session Time: ${formatTime(session.totalTime)}\n`;
+    t += `Total Stroke Time: ${formatTime(strokeSec)}\n`;
+    t += `Total Break Time: ${formatTime(restSec)}\n`;
+    t += `Total Breaks Taken: ${breaks}\n`;
+    t += `------------------------------------------\n\n`;
+    
+    session.splits.forEach(s => {
+        const modeLabel = s.mode === 'work' ? 'STROKE' : 'BREAK';
+        t += `Phase ${s.set} [${modeLabel}] - Duration: ${formatTime(s.duration)}\n`;
+    });
 
     const blob = new Blob([t], { type: 'text/plain' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `Log_${dateStr.replace(/\//g, '-')}_${timeStr}.txt`;
+    a.download = `Training_Log_${dateStr.replace(/\//g, '-')}_${timeStr}.txt`;
     a.click();
 }
 
+// --- DOM RENDERING ---
 function render() {
     const container = document.getElementById('main-timer-container');
     const breaksUsed = session.splits.filter(s => s.mode === 'rest').length + (session.currentMode === 'rest' ? 1 : 0);
@@ -124,7 +143,7 @@ function render() {
                 </div>
             </div>
             
-            <div style="color: var(--text-secondary); margin-top:10px;">Total Session: <span id="total-clock">${formatTime(session.totalTime)}</span></div>
+            <div style="color: var(--text-secondary); margin-top:10px;">Session: <span id="total-clock">${formatTime(session.totalTime)}</span></div>
             <div class="timer-display" id="main-clock" style="color: ${modeColor}">${formatTime(session.currentSessionTime)}</div>
             <div class="mode-indicator" style="color: ${modeColor}; font-weight:800; font-size: 1.4rem;">${displayMode}</div>
 
@@ -137,7 +156,12 @@ function render() {
             </div>
             
             <div class="splits-list" style="margin-top:20px; max-height:200px; overflow-y:auto;">
-                ${session.splits.map(s => `<div class="split-item"><b>${s.mode==='work'?'Stroke':'Break #'+s.set}</b> <span>${formatTime(s.duration)}</span></div>`).reverse().join('')}
+                ${session.splits.map(s => `
+                    <div class="split-item">
+                        <b style="color:${s.mode==='work'?'var(--accent-primary)':'var(--accent-running)'}">${s.mode==='work'?'Stroke':'Break #'+s.set}</b> 
+                        <span>${formatTime(s.duration)}</span>
+                    </div>
+                `).reverse().join('')}
             </div>
         </div>
     `;
@@ -150,6 +174,7 @@ function updateDisplay() {
     if(total) total.textContent = formatTime(session.totalTime);
 }
 
+// --- HELPERS ---
 function updateWarn(val) { session.breakWarning = val; save(); }
 function formatTime(s) { 
     const h = Math.floor(s/3600); const m = Math.floor((s%3600)/60); const sec = s%60;
@@ -159,6 +184,7 @@ function save() { localStorage.setItem('trainingSessionData', JSON.stringify(ses
 function applyTheme(t) { document.body.className = t; session.theme = t; document.getElementById('theme-select').value = t; save(); }
 function resetAll() { if(confirm("Reset everything?")) { localStorage.removeItem('trainingSessionData'); location.reload(); } }
 
+// --- KEYBOARD & MOUSE CONTROLS ---
 window.addEventListener('keydown', (e) => {
     if (Date.now() - lastActionTime < INPUT_COOLDOWN) return;
     if (e.code === 'Space') { 
