@@ -404,7 +404,7 @@ function renderTimers() {
             `;
         } 
         else if (type === 'stopwatch') {
-            div.className = `timer-card ${timer.isRunning && timer.currentMode === 'work' ? 'running' : ''}`;
+            div.className = `timer-card ${timer.isRunning && timer.currentMode === 'work' ? 'running' : (timer.isRunning && timer.currentMode === 'rest' ? 'resting' : '')}`;
             if (timer.currentMode === 'rest') div.style.borderLeftColor = 'var(--accent-running)';
 
             div.innerHTML = `
