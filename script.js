@@ -40,7 +40,7 @@ function playSound(type) {
         gain2.gain.setValueAtTime(0.1, now + 0.2);
         osc2.start(now + 0.2); osc2.stop(now + 0.35);
     }
-    else if (type === 'finish_standard') {
+    else if (type === 'finish') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
         osc.frequency.linearRampToValueAtTime(900, now + 0.4);
@@ -126,7 +126,7 @@ function setStopwatchMode(id, newMode) {
     }
 
     if (newMode.includes('stopped')) {
-        playSound('finish_standard');
+        playSound('finish');
         timer.isRunning = false;
         timer.currentMode = newMode;
         timer.outcome = newMode === 'stopped_release' ? 'RELEASED' : 'NO RELEASE';
@@ -219,15 +219,13 @@ function renderTimers() {
             const currentBreaks = timer.splits.filter(s => s.mode === 'rest').length + (timer.currentMode === 'rest' ? 1 : 0);
             div.className = `timer-card ${timer.isRunning && timer.currentMode === 'work' ? 'running' : (timer.isRunning && timer.currentMode === 'rest' ? 'resting' : '')}`;
             
-            // UI Color logic for instant glance
             const modeColor = timer.currentMode === 'work' ? 'var(--accent-primary)' : (timer.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-secondary)');
-            const modeText = timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? timer.outcome : 'READY'));
+            const modeText = timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? 'FINISHED' : 'READY'));
 
             div.innerHTML = `
                 <div class="timer-header">
                     <input type="text" class="timer-name" value="${timer.name}" onchange="updateTimerProp(${timer.id}, 'name', this.value)">
-                    <!-- BRIGHT RED BREAK COUNTER -->
-                    <div style="font-weight:bold; color: var(--accent-paused); font-size: 1.3rem; letter-spacing: 1px;">BREAKS USED: ${currentBreaks}</div>
+                    <div style="font-weight:bold; color: var(--accent-paused); font-size: 1.3rem;">BREAKS USED: ${currentBreaks}</div>
                     <button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
                 <div style="display:flex; justify-content:center; align-items:center; gap:15px; margin-top:5px;">
@@ -243,15 +241,14 @@ function renderTimers() {
                      </div>
                 </div>
                 <div class="timer-display" style="color: ${modeColor}">${formatTime(timer.currentSessionTime)}</div>
-                <!-- LARGE BOLD PHASE INDICATOR -->
                 <div class="mode-indicator" style="color: ${modeColor}; font-size: 1.4rem; font-weight: 800; text-transform: uppercase;">
                     ${modeText}
                 </div>
                 <div class="timer-controls">
                     <button class="btn" style="background:var(--accent-primary);" onclick="setStopwatchMode(${timer.id}, 'work')"><i class="fa-solid fa-fire"></i> Stroke</button>
                     <button class="btn" style="background:var(--accent-running);" onclick="setStopwatchMode(${timer.id}, 'rest')"><i class="fa-solid fa-bed"></i> Break</button>
-                    <button class="btn" style="background:#6c5ce7;" onclick="setStopwatchMode(${timer.id}, 'stopped_release')"><i class="fa-solid fa-water"></i> Release</button>
-                    <button class="btn" style="background:#636e72;" onclick="setStopwatchMode(${timer.id}, 'stopped_no_release')"><i class="fa-solid fa-xmark"></i> No Release</button>
+                    <button class="btn" style="background:#6c5ce7;" onclick="setStopwatchMode(${timer.id}, 'stopped_release')" title="Enter: Release"><i class="fa-solid fa-water"></i> Release</button>
+                    <button class="btn" style="background:#636e72;" onclick="setStopwatchMode(${timer.id}, 'stopped_no_release')" title="Esc: End Session"><i class="fa-solid fa-xmark"></i> End Session</button>
                     <button class="btn btn-reset" onclick="exportStopwatch(${timer.id})"><i class="fa-solid fa-file-export"></i></button>
                     <button class="btn btn-reset" onclick="resetStopwatch(${timer.id})"><i class="fa-solid fa-rotate-right"></i></button>
                 </div>
