@@ -7,7 +7,7 @@ let appData = {
 };
 
 let lastActionTime = 0;
-const INPUT_COOLDOWN = 1500; 
+const INPUT_COOLDOWN = 1000; 
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
@@ -26,6 +26,21 @@ function playSound(type) {
         osc.frequency.setValueAtTime(1200, now);
         gainNode.gain.setValueAtTime(0.05, now);
         osc.start(now); osc.stop(now + 0.1);
+    }
+    else if (type === 'warning') {
+        // Double beep for the break reminder
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        gainNode.gain.setValueAtTime(0.1, now);
+        osc.start(now); osc.stop(now + 0.15);
+        
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2); gain2.connect(audioCtx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(800, now + 0.2);
+        gain2.gain.setValueAtTime(0.1, now + 0.2);
+        osc2.start(now + 0.2); osc2.stop(now + 0.35);
     }
     else if (type === 'finish_standard') {
         osc.type = 'sine';
@@ -60,6 +75,13 @@ setInterval(() => {
                 if (timer.type === 'stopwatch') {
                     timer.currentSessionTime++;
                     timer.totalTime++;
+                    
+                    // Audio Break Warning Logic
+                    if (timer.currentMode === 'rest' && timer.breakWarning > 0) {
+                        if (timer.currentSessionTime === parseInt(timer.breakWarning)) {
+                            playSound('warning');
+                        }
+                    }
                 } else if (timer.type === 'countdown' && timer.remaining > 0) {
                     timer.remaining--;
                     if(timer.remaining === 0 && timer.sound !== 'none') playSound('beep2');
@@ -88,7 +110,7 @@ function createTimerObject(id, duration, countNumber) {
 }
 
 function createStopwatchObject(id, countNumber) {
-    return { id, type: 'stopwatch', name: `Training Log ${countNumber}`, isRunning: false, currentMode: 'none', currentSessionTime: 0, totalTime: 0, currentSet: 1, splits: [], outcome: 'none' };
+    return { id, type: 'stopwatch', name: `Training Log ${countNumber}`, isRunning: false, currentMode: 'none', currentSessionTime: 0, totalTime: 0, currentSet: 1, splits: [], outcome: 'none', breakWarning: 0 };
 }
 
 function deleteTimer(timerId) {
@@ -111,12 +133,12 @@ function setStopwatchMode(id, newMode) {
         playSound('finish_standard');
         timer.isRunning = false;
         timer.currentMode = 'stopped_release';
-        timer.outcome = 'RELEASED (SESSION COMPLETE)';
+        timer.outcome = 'RELEASED';
     } else if (newMode === 'stopped_no_release') {
         playSound('finish_standard');
         timer.isRunning = false;
         timer.currentMode = 'stopped_no_release';
-        timer.outcome = 'NO RELEASE (SESSION ENDED)';
+        timer.outcome = 'NO RELEASE';
     } else {
         playSound('beep2');
         timer.currentMode = newMode;
@@ -202,7 +224,18 @@ function renderTimers() {
                     <div style="font-weight:bold; color: var(--accent-paused); font-size: 1.1rem;">BREAKS USED: ${currentBreaks}</div>
                     <button class="btn btn-icon" onclick="deleteTimer(${timer.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
-                <div style="text-align:center; color: var(--text-secondary); margin-top:5px; font-size: 0.9rem;" class="total-time-display">Total Session Time: ${formatTime(timer.totalTime)}</div>
+                <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:5px;">
+                     <div style="color: var(--text-secondary); font-size: 0.9rem;" class="total-time-display">Total Session Time: ${formatTime(timer.totalTime)}</div>
+                     <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                        Break Warning: 
+                        <select onchange="updateTimerProp(${timer.id}, 'breakWarning', this.value)" style="font-size:0.8rem; padding:2px;">
+                            <option value="0" ${timer.breakWarning == 0 ? 'selected' : ''}>None</option>
+                            <option value="40" ${timer.breakWarning == 40 ? 'selected' : ''}>40s</option>
+                            <option value="60" ${timer.breakWarning == 60 ? 'selected' : ''}>60s</option>
+                            <option value="90" ${timer.breakWarning == 90 ? 'selected' : ''}>90s</option>
+                        </select>
+                     </div>
+                </div>
                 <div class="timer-display" style="color: ${timer.currentMode === 'work' ? 'var(--accent-primary)' : timer.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-primary)'}">${formatTime(timer.currentSessionTime)}</div>
                 <div class="mode-indicator">
                     ${timer.currentMode === 'work' ? 'STROKE' : (timer.currentMode === 'rest' ? 'BREAK #' + timer.currentSet : (timer.currentMode.includes('stopped') ? timer.outcome : 'Ready'))}
@@ -210,7 +243,7 @@ function renderTimers() {
                 <div class="timer-controls">
                     <button class="btn" style="background:var(--accent-primary);" onclick="setStopwatchMode(${timer.id}, 'work')"><i class="fa-solid fa-fire"></i> Stroke</button>
                     <button class="btn" style="background:var(--accent-running);" onclick="setStopwatchMode(${timer.id}, 'rest')"><i class="fa-solid fa-bed"></i> Break</button>
-                    <button class="btn" style="background:#6c5ce7;" onclick="setStopwatchMode(${timer.id}, 'stopped_release')" title="Enter: Release"><i class="fa-solid fa-water"></i> Release</button>
+                    <button class="btn" style="background:#6c5ce7;" onclick="setStopwatchMode(${timer.id}, 'stopped_release')" title="Enter: Released"><i class="fa-solid fa-water"></i> Release</button>
                     <button class="btn" style="background:#636e72;" onclick="setStopwatchMode(${timer.id}, 'stopped_no_release')" title="Esc: No Release"><i class="fa-solid fa-xmark"></i> No Release</button>
                     <button class="btn btn-reset" onclick="exportStopwatch(${timer.id})"><i class="fa-solid fa-file-export"></i></button>
                     <button class="btn btn-reset" onclick="resetStopwatch(${timer.id})"><i class="fa-solid fa-rotate-right"></i></button>
