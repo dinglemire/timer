@@ -105,7 +105,7 @@ function exportData() {
     if (isElite) t += `RANK: ⭐ ELITE PERFORMANCE ⭐\n`;
     t += `Total Session Time: ${formatTime(session.totalTime)}\n`;
     t += `Total Stroke Time: ${formatTime(strokeSec)}\n`;
-    t += `Total Break Time: ${formatTime(restSec)}\n`;
+    t += `Total Rest Time: ${formatTime(restSec)}\n`;
     t += `Total Breaks Taken: ${breaks}\n`;
     t += `------------------------------------------\n\n`;
     
