@@ -171,8 +171,8 @@ function createTimerObject(id, duration, countNumber) {
 
 function createStopwatchObject(id, countNumber) {
     return {
-        id: id, type: 'stopwatch', name: `Work/Rest ${countNumber}`,
-        isRunning: false, currentMode: 'none', // 'work', 'rest', 'none', 'stopped'
+        id: id, type: 'stopwatch', name: `Stroke/Rest ${countNumber}`, // Changed here
+        isRunning: false, currentMode: 'none', 
         currentSessionTime: 0, totalTime: 0, currentSet: 1, splits:[]
     };
 }
@@ -279,23 +279,30 @@ function exportStopwatch(id) {
     const tab = appData.tabs.find(t => t.id === appData.activeTabId);
     const timer = tab.timers.find(t => t.id === id);
 
-    let text = `=== WORK / REST EXPORT ===\n`;
-    text += `Date: ${new Date().toLocaleDateString()}\n`;
+    const now = new Date();
+    // Get the day of the week (e.g., "Monday")
+    const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const dateStr = now.toLocaleDateString(); // Gets the numeric date
+
+    let text = `=== STROKE / REST EXPORT ===\n`;
+    text += `Date: ${dateStr} (${weekday})\n`;
     text += `Total Tracked Time: ${formatTime(timer.totalTime)}\n\n`;
     
     timer.splits.forEach(s => {
-        text += `Set ${s.set}[${s.mode.toUpperCase()}] - Duration: ${formatTime(s.duration)}\n`;
+        const modeLabel = s.mode === 'work' ? 'STROKE' : 'REST';
+        text += `Set ${s.set} [${modeLabel}] - Duration: ${formatTime(s.duration)}\n`;
     });
     
     if(timer.currentMode === 'work' || timer.currentMode === 'rest') {
-        text += `Set ${timer.currentSet} [${timer.currentMode.toUpperCase()}] (Unfinished) - Duration: ${formatTime(timer.currentSessionTime)}\n`;
+        const currentModeLabel = timer.currentMode === 'work' ? 'STROKE' : 'REST';
+        text += `Set ${timer.currentSet} [${currentModeLabel}] (Unfinished) - Duration: ${formatTime(timer.currentSessionTime)}\n`;
     }
 
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Work_Rest_Export_${new Date().getTime()}.txt`;
+    a.download = `Stroke_Rest_Export_${now.getTime()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -398,12 +405,12 @@ function renderTimers() {
                 </div>
                 
                 <div class="mode-indicator" style="color: ${timer.currentMode==='work' ? 'var(--accent-primary)' : timer.currentMode==='rest' ? 'var(--accent-running)' : 'var(--text-secondary)'}">
-                    ${timer.currentMode !== 'none' && timer.currentMode !== 'stopped' ? timer.currentMode + ' - Set ' + timer.currentSet : (timer.currentMode === 'stopped' ? 'Stopped' : 'Ready')}
+                    ${timer.currentMode !== 'none' && timer.currentMode !== 'stopped' ? (timer.currentMode === 'work' ? 'Stroke' : 'Rest') + ' - Set ' + timer.currentSet : (timer.currentMode === 'stopped' ? 'Stopped' : 'Ready')}
                 </div>
 
                 <div class="timer-controls">
                     <button class="btn" style="background:var(--accent-primary);" onclick="setStopwatchMode(${timer.id}, 'work')">
-                        <i class="fa-solid fa-dumbbell"></i> Work
+                        <i class="fa-solid fa-fire"></i> Stroke
                     </button>
                     <button class="btn" style="background:var(--accent-running);" onclick="setStopwatchMode(${timer.id}, 'rest')">
                         <i class="fa-solid fa-bed"></i> Rest
@@ -422,11 +429,11 @@ function renderTimers() {
                 <div class="splits-list">
                     ${timer.splits.map(s => `
                         <div class="split-item">
-                            <span class="split-${s.mode}">Set ${s.set} - ${s.mode.toUpperCase()}</span>
+                            <span class="split-${s.mode}">Set ${s.set} - ${s.mode === 'work' ? 'STROKE' : 'REST'}</span>
                             <span>${formatTime(s.duration)}</span>
                         </div>
                     `).reverse().join('')} 
-                    ${timer.splits.length === 0 ? '<div style="text-align:center; opacity:0.5; margin-top:10px;">No splits yet</div>' : ''}
+                    ${timer.splits.length === 0 ? '<div style="text-align:center; opacity:0.5; margin-top:10px;">No entries yet</div>' : ''}
                 </div>
             `;
         }
