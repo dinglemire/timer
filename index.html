@@ -3,15 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stroke/Break Trainer</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Training Console</title>
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaaaaa;
+            --accent-primary: #00b894;
+            --accent-running: #0984e3;
+            --accent-paused: #ff4757;
+            --input-bg: #333;
+            --border-color: #444;
+        }
+        body.theme-steam {
+            --bg-color: #171a21; --card-bg: #1b2838; --text-primary: #66c0f4;
+            --text-secondary: #c7d5e0; --accent-primary: #4c6b22;
+            --accent-running: #66c0f4; --accent-paused: #a33838;
+        }
+        body.theme-light {
+            --bg-color: #f5f6fa; --card-bg: #ffffff; --text-primary: #2d3436;
+            --text-secondary: #636e72; --accent-primary: #00b894;
+            --accent-running: #0984e3; --accent-paused: #d63031;
+        }
+        body.theme-amber {
+            --bg-color: #0f0b08; --card-bg: #1a140f; --text-primary: #ff9f43;
+            --text-secondary: #ad7d52; --accent-primary: #ee5253;
+            --accent-running: #feca57; --accent-paused: #ff4757;
+        }
+
+        /* --- BASE STYLES --- */
+        body {
+            background-color: var(--bg-color); color: var(--text-primary);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; transition: background 0.3s, color 0.3s;
+            user-select: none;
+        }
+        .app-container { width: 95%; max-width: 850px; padding: 20px; }
+
+        /* --- TOP BAR --- */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h2 { margin: 0; font-size: 1.2rem; opacity: 0.8; }
+        select {
+            background: var(--card-bg); color: var(--text-primary);
+            border: 1px solid var(--border-color); padding: 6px 10px;
+            border-radius: 6px; cursor: pointer; outline: none;
+        }
+
+        /* --- TIMER CARD --- */
+        .timer-card {
+            background-color: var(--card-bg); padding: 40px; border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            border-left: 8px solid var(--border-color); border-right: 8px solid var(--border-color);
+            text-align: center; transition: all 0.3s ease;
+        }
+
+        /* --- PULSE ANIMATIONS --- */
+        @keyframes pulse-stroke {
+            0% { box-shadow: 0 0 15px rgba(0, 184, 148, 0.2); border-color: var(--accent-primary); }
+            50% { box-shadow: 0 0 40px rgba(0, 184, 148, 0.5); border-color: #55efc4; background-color: rgba(0, 184, 148, 0.05); }
+            100% { box-shadow: 0 0 15px rgba(0, 184, 148, 0.2); border-color: var(--accent-primary); }
+        }
+        @keyframes pulse-rest {
+            0% { box-shadow: 0 0 15px rgba(9, 132, 227, 0.2); border-color: var(--accent-running); }
+            50% { box-shadow: 0 0 40px rgba(9, 132, 227, 0.5); border-color: #74b9ff; background-color: rgba(9, 132, 227, 0.05); }
+            100% { box-shadow: 0 0 15px rgba(9, 132, 227, 0.2); border-color: var(--accent-running); }
+        }
+        .timer-card.running { animation: pulse-stroke 1.5s infinite ease-in-out; }
+        .timer-card.resting { animation: pulse-rest 3s infinite ease-in-out; }
+
+        /* --- DISPLAYS --- */
+        .timer-display { 
+            font-size: clamp(4rem, 15vw, 7.5rem); font-family: 'Courier New', Courier, monospace; 
+            font-weight: 700; margin: 10px 0; letter-spacing: -2px;
+        }
+        .mode-indicator { font-size: 1.6rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 25px; text-transform: uppercase; }
+        #total-clock { font-weight: bold; font-family: monospace; }
+
+        /* --- CONTROLS & BUTTONS --- */
+        .timer-controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
+        .btn { 
+            padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; 
+            font-weight: bold; color: white; display: flex; align-items: center; gap: 8px; font-size: 1rem;
+            transition: transform 0.1s, opacity 0.2s, background 0.3s;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
+        .btn-reset { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); font-size: 1.2rem; }
+
+        /* --- SPLITS / LOGS --- */
+        .splits-list { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 15px; text-align: left; font-family: monospace; }
+        .split-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color); }
+        .split-item:last-child { border-bottom: none; }
+
+        /* --- FOOTER --- */
+        footer { margin-top: 40px; text-align: center; }
+        .text-btn { background: none; border: none; color: var(--text-secondary); text-decoration: underline; cursor: pointer; font-size: 0.85rem; }
+
+        @media (max-width: 600px) {
+            .timer-card { padding: 20px; } .timer-controls { gap: 8px; } .btn { padding: 10px 14px; font-size: 0.9rem; }
+        }
+    </style>
 </head>
 <body class="theme-dark">
 
     <div class="app-container">
         <div class="top-bar">
-            <h2><i class="fa-solid fa-fire"></i> Training Console</h2>
+            <h2>🔥 Training Console</h2>
             <div class="theme-control">
                 <select id="theme-select">
                     <option value="theme-dark">Default Dark</option>
@@ -22,15 +122,225 @@
             </div>
         </div>
 
-        <div id="main-timer-container">
-            <!-- The training timer will live here exclusively -->
-        </div>
+        <div id="main-timer-container"></div>
 
         <footer>
+            <!-- Outcome Container (Hidden until session finishes) -->
+            <div id="outcome-container" style="display: none; justify-content: center; align-items: center; margin-bottom: 20px;">
+                <button id="outcome-toggle-btn" class="btn" style="background: var(--accent-primary);">💦 Outcome: Released</button>
+            </div>
+            
             <button id="clear-data-btn" class="text-btn">Reset Session Stats</button>
         </footer>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        /* --- STATE MANAGEMENT --- */
+        let session = {
+            isRunning: false, currentMode: 'none', currentSessionTime: 0,
+            totalTime: 0, currentSet: 1, splits:[], breakWarning: 0, theme: 'theme-dark',
+            outcome: 'Released' // Default state for your sessions
+        };
+
+        let lastActionTime = 0;
+        const INPUT_COOLDOWN = 1000;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'beep') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(1200, now);
+                gain.gain.setValueAtTime(0.05, now); osc.start(); osc.stop(now + 0.1);
+            } else if (type === 'warning') {
+                osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.1, now);
+                osc.start(); osc.stop(now + 0.15);
+                const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
+                osc2.connect(gain2); gain2.connect(audioCtx.destination);
+                osc2.frequency.setValueAtTime(800, now + 0.2); gain2.gain.setValueAtTime(0.1, now + 0.2);
+                osc2.start(now + 0.2); osc2.stop(now + 0.35);
+            } else if (type === 'finish') {
+                osc.frequency.setValueAtTime(600, now); osc.frequency.linearRampToValueAtTime(900, now + 0.4);
+                gain.gain.setValueAtTime(0.1, now); osc.start(); osc.stop(now + 0.4);
+            }
+        }
+
+        function init() {
+            const saved = localStorage.getItem('trainingSessionDataLocal');
+            if (saved) {
+                session = JSON.parse(saved);
+                if(!session.outcome) session.outcome = 'Released';
+            }
+            applyTheme(session.theme || 'theme-dark');
+            updateOutcomeUI();
+            render();
+        }
+
+        setInterval(() => {
+            if (session.isRunning) {
+                session.currentSessionTime++; session.totalTime++;
+                if (session.currentMode === 'rest' && session.breakWarning > 0) {
+                    if (session.currentSessionTime === parseInt(session.breakWarning)) playSound('warning');
+                }
+                save(); updateDisplay();
+            }
+        }, 1000);
+
+        function setMode(newMode) {
+            if (session.currentMode === newMode && session.isRunning) return;
+
+            if (session.currentMode !== 'none' && session.currentMode !== 'stopped' && session.currentSessionTime > 0) {
+                session.splits.push({ mode: session.currentMode, set: session.currentSet, duration: session.currentSessionTime });
+                if (session.currentMode === 'rest' && newMode === 'work') session.currentSet++;
+            }
+
+            if (newMode === 'stopped') {
+                playSound('finish'); session.isRunning = false; session.currentMode = 'stopped';
+            } else {
+                playSound('beep'); session.currentMode = newMode; session.currentSessionTime = 0; session.isRunning = true;
+            }
+            save(); 
+            render();
+            updateOutcomeUI(); // Hide or show the button depending on mode
+        }
+
+        function toggleOutcome() {
+            session.outcome = session.outcome === 'Released' ? 'No Release' : 'Released';
+            save();
+            updateOutcomeUI();
+        }
+
+        // Handles BOTH Visibility and Color styling
+        function updateOutcomeUI() {
+            const container = document.getElementById('outcome-container');
+            const btn = document.getElementById('outcome-toggle-btn');
+            
+            // Only show the outcome button if the session is fully finished/stopped
+            if (session.currentMode === 'stopped') {
+                container.style.display = 'flex';
+            } else {
+                container.style.display = 'none';
+            }
+
+            // Update button text and color
+            if(session.outcome === 'Released') {
+                btn.style.background = 'var(--accent-primary)';
+                btn.innerHTML = '💦 Outcome: Released';
+            } else {
+                btn.style.background = 'var(--text-secondary)';
+                btn.innerHTML = '✖ Outcome: No Release';
+            }
+        }
+
+        function exportData() {
+            const now = new Date();
+            const weekday = now.toLocaleDateString('en-GB', { weekday: 'long' });
+            const dateStr = now.toLocaleDateString('en-GB');
+            const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
+            
+            let strokeSec = 0, restSec = 0, breaks = 0, longBreak = false;
+            session.splits.forEach(s => {
+                if (s.mode === 'work') strokeSec += s.duration;
+                else { restSec += s.duration; breaks++; if(s.duration > 50) longBreak = true; }
+            });
+
+            const isElite = (session.totalTime >= 1200 && breaks <= 5 && !longBreak);
+
+            let t = `=== STROKE / BREAK TRAINING LOG ===\nDate: ${dateStr} (${weekday})\nOutcome: ${session.outcome}\n`;
+            if (isElite) t += `RANK: ⭐ ELITE PERFORMANCE ⭐\n`;
+            t += `Total Session Time: ${formatTime(session.totalTime)}\nTotal Stroke Time: ${formatTime(strokeSec)}\nTotal Break Time: ${formatTime(restSec)}\nTotal Breaks Taken: ${breaks}\n------------------------------------------\n\n`;
+            session.splits.forEach(s => t += `Set ${s.set}[${s.mode === 'work' ? 'STROKE' : 'BREAK'}] - Duration: ${formatTime(s.duration)}\n`);
+
+            const blob = new Blob([t], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Training_Log_${dateStr.replace(/\//g, '-')}_${timeStr}.txt`;
+            a.click();
+        }
+
+        function render() {
+            const container = document.getElementById('main-timer-container');
+            const breaksUsed = session.splits.filter(s => s.mode === 'rest').length + (session.currentMode === 'rest' ? 1 : 0);
+            const modeColor = session.currentMode === 'work' ? 'var(--accent-primary)' : (session.currentMode === 'rest' ? 'var(--accent-running)' : 'var(--text-secondary)');
+            const displayMode = session.currentMode === 'work' ? 'STROKE' : (session.currentMode === 'rest' ? 'BREAK #' + session.currentSet : (session.currentMode === 'stopped' ? 'FINISHED' : 'READY'));
+
+            container.innerHTML = `
+                <div class="timer-card ${session.isRunning && session.currentMode === 'work' ? 'running' : (session.isRunning && session.currentMode === 'rest' ? 'resting' : '')}">
+                    <div style="display:flex; justify-content: space-between; align-items:center;">
+                        <div style="font-weight:bold; color: var(--accent-paused); font-size: 1.3rem;">BREAKS USED: ${breaksUsed}</div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                            Warning: 
+                            <select onchange="updateWarn(this.value)">
+                                <option value="0" ${session.breakWarning == 0 ? 'selected' : ''}>Off</option>
+                                <option value="40" ${session.breakWarning == 40 ? 'selected' : ''}>40s</option>
+                                <option value="60" ${session.breakWarning == 60 ? 'selected' : ''}>60s</option>
+                                <option value="90" ${session.breakWarning == 90 ? 'selected' : ''}>90s</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="color: var(--text-secondary); margin-top:10px;">Session: <span id="total-clock">${formatTime(session.totalTime)}</span></div>
+                    <div class="timer-display" id="main-clock" style="color: ${modeColor}">${formatTime(session.currentSessionTime)}</div>
+                    <div class="mode-indicator" style="color: ${modeColor}; font-weight:800; font-size: 1.4rem;">${displayMode}</div>
+
+                    <div class="timer-controls">
+                        <button class="btn" style="background:var(--accent-primary);" onclick="setMode('work')">🔥 Stroke</button>
+                        <button class="btn" style="background:var(--accent-running);" onclick="setMode('rest')">💤 Break</button>
+                        <button class="btn" style="background:#6c5ce7;" onclick="setMode('stopped')">✔️ Finish Session</button>
+                        <button class="btn btn-reset" onclick="exportData()" title="Export">💾</button>
+                        <button class="btn btn-reset" onclick="resetAll()" title="Reset Session">🔄</button>
+                    </div>
+                    
+                    <div class="splits-list" style="margin-top:20px; max-height:200px; overflow-y:auto;">
+                        ${session.splits.map(s => `
+                            <div class="split-item">
+                                <b style="color:${s.mode==='work'?'var(--accent-primary)':'var(--accent-running)'}">${s.mode==='work'?'Stroke':'Break #'+s.set}</b> 
+                                <span>${formatTime(s.duration)}</span>
+                            </div>
+                        `).reverse().join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateDisplay() {
+            const main = document.getElementById('main-clock'); const total = document.getElementById('total-clock');
+            if(main) main.textContent = formatTime(session.currentSessionTime);
+            if(total) total.textContent = formatTime(session.totalTime);
+        }
+
+        function updateWarn(val) { session.breakWarning = val; save(); }
+        function formatTime(s) { 
+            const h = Math.floor(s/3600); const m = Math.floor((s%3600)/60); const sec = s%60;
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+        }
+        function save() { localStorage.setItem('trainingSessionDataLocal', JSON.stringify(session)); }
+        function applyTheme(t) { document.body.className = t; session.theme = t; document.getElementById('theme-select').value = t; save(); }
+        function resetAll() { if(confirm("Reset everything?")) { localStorage.removeItem('trainingSessionDataLocal'); location.reload(); } }
+
+        window.addEventListener('keydown', (e) => {
+            if (Date.now() - lastActionTime < INPUT_COOLDOWN) return;
+            if (e.code === 'Space') { e.preventDefault(); lastActionTime = Date.now(); setMode(session.currentMode === 'work' ? 'rest' : 'work'); }
+            else if (e.code === 'Enter' || e.code === 'Escape') { lastActionTime = Date.now(); setMode('stopped'); }
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 1 && Date.now() - lastActionTime > INPUT_COOLDOWN) { 
+                lastActionTime = Date.now(); setMode(session.currentMode === 'work' ? 'rest' : 'work'); 
+            }
+        });
+
+        // Event Listeners for standalone buttons
+        document.getElementById('theme-select').onchange = (e) => applyTheme(e.target.value);
+        document.getElementById('clear-data-btn').onclick = resetAll;
+        document.getElementById('outcome-toggle-btn').onclick = toggleOutcome;
+
+        init();
+    </script>
 </body>
 </html>
